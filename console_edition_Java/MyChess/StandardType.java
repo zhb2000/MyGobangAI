@@ -10,5 +10,5 @@ public class StandardType {
     /** 己方棋子 */
     final public static int SELF = 1;
     /** 非法位置或被敌方阻塞 */
-    final public static int BLOCKED = -1;
+    final public static int BLOCKED = 2;
 }

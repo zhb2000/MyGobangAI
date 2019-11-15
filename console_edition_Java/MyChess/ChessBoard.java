@@ -50,8 +50,8 @@ public class ChessBoard {
         }
         boardMatrix[x][y] = type;
         chessNum++;// 更新棋子总数
-        updateHeuristic(x, y);// 更新启发函数矩阵
-        updateNeighbor(x, y);// 更新邻居矩阵
+        updateHeuristicAfterDo(x, y);// 更新启发函数矩阵
+        updateNeighborAfterDo(x, y);// 更新邻居矩阵
         return true;
     }
 
@@ -72,12 +72,14 @@ public class ChessBoard {
         }
         boardMatrix[x][y] = EMPTY_CHESS;
         chessNum--;// 更新棋子总数
-        updateHeuristic(x, y);// 更新启发函数矩阵
-        updateNeighbor(x, y);// 更新邻居矩阵
+        updateHeuristicAfterDo(x, y);// 更新启发函数矩阵
+        updateNeighborAfterDo(x, y);// 更新邻居矩阵
         return true;
     }
 
     /**
+     * 判断棋盘是否已满
+     * 
      * @retrun 棋盘是否已满
      */
     public boolean isFull() {
@@ -85,23 +87,37 @@ public class ChessBoard {
     }
 
     /**
-     * 落子或撤销后对neighborMatrix进行更新
+     * 对(x,y)位置落子或撤销后，更新邻居矩阵
      * 
-     * @param x 中心位置的行号
-     * @param y 中心位置的列号
+     * @param x 落子位置或撤销位置的行号
+     * @param y 落子位置或撤销位置的列号
      */
-    private void updateNeighbor(int x, int y) {
-        for (int i = x - 2; i <= x + 2; i++) {
-            for (int j = y - 2; j <= y + 2; j++) {
-                if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
-                    calcuNeighbor(i, j);// 没有越界且是个空位
+    private void updateNeighborAfterDo(int x, int y) {
+        if (boardMatrix[x][y] != EMPTY_CHESS) {
+            // 在(x,y)位置落子，直接把周围的空位修改成有邻居即可
+            for (int i = x - 2; i <= x + 2; i++) {
+                for (int j = y - 2; j <= y + 2; j++) {
+                    // 没有越界且是个空位
+                    if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
+                        neighborMatrix[i][j] = true;
+                    }
+                }
+            }
+        } else {
+            // 在(x,y)位置撤销棋子，周围空位的邻居情况需要具体计算
+            for (int i = x - 2; i <= x + 2; i++) {
+                for (int j = y - 2; j <= y + 2; j++) {
+                    // 没有越界且是个空位
+                    if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
+                        calcuNeighbor(i, j);
+                    }
                 }
             }
         }
     }
 
     /**
-     * 计算(x,y)附近是否有棋子
+     * 计算(x,y)附近是否有棋子，并修改邻居矩阵中相应的位置
      * 
      * @param x 中心位置的行号
      * @param y 中心位置的列号
@@ -125,7 +141,7 @@ public class ChessBoard {
      * @param x 中心位置的行号
      * @param y 中心位置的列号
      */
-    private void updateHeuristic(int x, int y) {
+    private void updateHeuristicAfterDo(int x, int y) {
         // 更新附近的空格的启发函数值，米字范围内的空格都要更新
         // 垂直方向
         List<Coord> verticals = lineCoords(x, y, Direction.VERTICAL);
@@ -174,11 +190,16 @@ public class ChessBoard {
     }
 
     /**
-     * 计算(x,y)处的启发函数值并赋值，只对direction方向进行更新
+     * <p>
+     * 计算(x,y)处的启发函数值，并给启发函数矩阵的相应位置赋值
+     * </p>
+     * <p>
+     * 为了提高速度，只修改direction方向的启发函数值
+     * </p>
      * 
-     * @param x         行号
-     * @param y         列号
-     * @param direction 更新的方向
+     * @param x         空位的行号
+     * @param y         空位的列号
+     * @param direction 指定的方向
      */
     private void calcuHeuristic(int x, int y, int direction) {
         int dir;
@@ -194,11 +215,10 @@ public class ChessBoard {
         List<Coord> coords = lineCoords(x, y, direction);
         comHeuristic[x][y][dir] = score(coords, COM_CHESS);
         humHeuristic[x][y][dir] = score(coords, HUM_CHESS);
-        //TODO 重复计算估计函数值了吗？
     }
 
     /**
-     * 根据指向中棋形的种类和数量，对直线coords打分
+     * 根据直线中棋形的种类和数量，对直线coords打分
      * 
      * @param coords    直线，坐标允许越界
      * @param chessType 对哪一方打分
@@ -224,6 +244,49 @@ public class ChessBoard {
             }
         }
         return scoreStandardLine(standardLine);
+    }
+
+    /**
+     * 获取某一方挑选空格时的启发式函数值
+     * 
+     * @param x 空格的行号
+     * @param y 空格的列号
+     * @param type 哪一方的棋子要下到这个空格上
+     * 
+     * @return 该空格对于该方的启发函数值
+     */
+    private int heuristic(int x, int y, int type) {
+        if (type == COM_CHESS) {
+            //电脑方的棋子要下到(x,y)位置的空格上
+            //把该空格位置四个方向的启发函数值加起来返回
+            return comHeuristic[x][y][Direction.VERTICAL] + comHeuristic[x][y][Direction.HORIZONTAL]
+                    + comHeuristic[x][y][Direction.DIAGONAL] + comHeuristic[x][y][Direction.ANTIDIAGONAL];
+        } else {
+            return humHeuristic[x][y][Direction.VERTICAL] + humHeuristic[x][y][Direction.HORIZONTAL]
+                    + humHeuristic[x][y][Direction.DIAGONAL] + humHeuristic[x][y][Direction.ANTIDIAGONAL];
+        }
+    }
+
+    /**
+     * 获取一组“优良的”空格位置
+     * @param type 哪一方需要落子
+     */
+    public List<Coord> generator(int type) {
+        // List<Coord> fivePos = new ArrayList<>();
+        // List<Coord> aliveFourPos = new ArrayList<>();
+        // List<Coord> aliveThreePos = new ArrayList<>();
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            for (int y = 0; y < BOARD_SIZE; y++) {
+                //这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
+                if (boardMatrix[x][y] == EMPTY_CHESS && neighborMatrix[x][y]) {
+                    int posScore = heuristic(x, y, type);
+                    Coord coord = new Coord(x, y);
+                    
+                }
+            }
+        }
+        // TODO
+        return null;
     }
 
     // 各种工具static方法
@@ -269,7 +332,6 @@ public class ChessBoard {
      * @return 该横线的分数
      */
     private static int scoreStandardLine(List<Integer> line) {
-        // TODO
-        return 0;
+        return ScoreCalculator.scoreLine(line);
     }
 }
