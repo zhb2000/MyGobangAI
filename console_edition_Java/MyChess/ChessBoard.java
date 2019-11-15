@@ -4,6 +4,7 @@ import static MyChess.ChessType.*;
 import static MyChess.Config.BOARD_SIZE;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ChessBoard {
@@ -180,7 +181,7 @@ public class ChessBoard {
                 calcuHeuristic(ux, uy, Direction.ANTIDIAGONAL);
             }
         }
-        // 若自己这个位置是空格，则更新自己的启发函数值
+        // 若自己这个位置变成了空格，则需要更新自己这里的启发函数值
         if (boardMatrix[x][y] == EMPTY_CHESS) {
             calcuHeuristic(x, y, Direction.VERTICAL);
             calcuHeuristic(x, y, Direction.HORIZONTAL);
@@ -212,9 +213,12 @@ public class ChessBoard {
         } else {
             dir = 3;
         }
-        List<Coord> coords = lineCoords(x, y, direction);
+        List<Coord> coords = lineCoords(x, y, direction);// 生成所需的坐标
+        boardMatrix[x][y] = COM_CHESS;// 空位放上电脑棋子
         comHeuristic[x][y][dir] = score(coords, COM_CHESS);
+        boardMatrix[x][y] = HUM_CHESS;// 空位放上人类棋子
         humHeuristic[x][y][dir] = score(coords, HUM_CHESS);
+        boardMatrix[x][y] = EMPTY_CHESS;// 把空位恢复成空的
     }
 
     /**
@@ -249,16 +253,16 @@ public class ChessBoard {
     /**
      * 获取某一方挑选空格时的启发式函数值
      * 
-     * @param x 空格的行号
-     * @param y 空格的列号
+     * @param x    空格的行号
+     * @param y    空格的列号
      * @param type 哪一方的棋子要下到这个空格上
      * 
      * @return 该空格对于该方的启发函数值
      */
     private int heuristic(int x, int y, int type) {
         if (type == COM_CHESS) {
-            //电脑方的棋子要下到(x,y)位置的空格上
-            //把该空格位置四个方向的启发函数值加起来返回
+            // 电脑方的棋子要下到(x,y)位置的空格上
+            // 把该空格位置四个方向的启发函数值加起来返回
             return comHeuristic[x][y][Direction.VERTICAL] + comHeuristic[x][y][Direction.HORIZONTAL]
                     + comHeuristic[x][y][Direction.DIAGONAL] + comHeuristic[x][y][Direction.ANTIDIAGONAL];
         } else {
@@ -269,27 +273,247 @@ public class ChessBoard {
 
     /**
      * 获取一组“优良的”空格位置
+     * 
      * @param type 哪一方需要落子
+     * 
+     * @return 一组“优良的”空格位置
      */
     public List<Coord> generator(int type) {
-        // List<Coord> fivePos = new ArrayList<>();
-        // List<Coord> aliveFourPos = new ArrayList<>();
-        // List<Coord> aliveThreePos = new ArrayList<>();
+        int self, enermy;
+        if (type == COM_CHESS) {
+            self = COM_CHESS;
+            enermy = HUM_CHESS;
+        } else {
+            self = HUM_CHESS;
+            enermy = COM_CHESS;
+        }
+        // 某一方放在该空位能连五
+        List<Coord> fives = new ArrayList<>();
+        // 己方放在该空位能活四
+        List<Coord> selfAliveFours = new ArrayList<>();
+        // 敌方放在该空位能活四
+        List<Coord> enermyAliveFours = new ArrayList<>();
+        // 己方放在该空位能死四
+        List<Coord> selfBlockedFours = new ArrayList<>();
+        // 敌方放在该空位能死四
+        List<Coord> enermyBlockedFours = new ArrayList<>();
+        // 己方放在该空位能双活三
+        List<Coord> selfDoubleThrees = new ArrayList<>();
+        // 敌方放在该空位能双活三
+        List<Coord> enermyDoubleThrees = new ArrayList<>();
+        // 其他
+        List<CoordWithHeuristic> otherPositions = new ArrayList<>();
+
         for (int x = 0; x < BOARD_SIZE; x++) {
             for (int y = 0; y < BOARD_SIZE; y++) {
-                //这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
+                // 这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
                 if (boardMatrix[x][y] == EMPTY_CHESS && neighborMatrix[x][y]) {
-                    int posScore = heuristic(x, y, type);
                     Coord coord = new Coord(x, y);
-                    
+                    int selfPosScore = heuristic(x, y, self);
+                    int enermyPosScore = heuristic(x, y, enermy);
+                    if (selfPosScore >= Score.FIVE || enermyPosScore >= Score.FIVE) {
+                        fives.add(coord);
+                    } else if (selfPosScore >= Score.ALIVE_FOUR) {
+                        selfAliveFours.add(coord);
+                    } else if (enermyPosScore >= Score.ALIVE_FOUR) {
+                        enermyAliveFours.add(coord);
+                    } else if (selfPosScore >= Score.BLOCKED_FOUR) {
+                        selfBlockedFours.add(coord);
+                    } else if (enermyPosScore >= Score.BLOCKED_FOUR) {
+                        enermyBlockedFours.add(coord);
+                    } else if (selfPosScore >= Score.ALIVE_THREE * 2) {
+                        selfDoubleThrees.add(coord);
+                    } else if (enermyPosScore >= Score.ALIVE_THREE * 2) {
+                        enermyDoubleThrees.add(coord);
+                    } else {
+                        otherPositions.add(new CoordWithHeuristic(coord, Math.abs(selfPosScore - enermyPosScore)));
+                    }
                 }
             }
         }
-        // TODO
-        return null;
+
+        // 己方能连五的位置，必杀，直接返回
+        // 敌方下一手能连五的位置，己方要把这里堵住，直接返回
+        if (fives.size() > 0) {
+            return fives;
+        }
+        // 己方能活四的位置，必杀，直接返回
+        if (selfAliveFours.size() > 0) {
+            return selfAliveFours;
+        }
+        // 敌方下一手能活四的位置
+        if (enermyAliveFours.size() > 0) {
+            // 若己方这一手有能死四的位置
+            if (selfBlockedFours.size() > 0) {
+                // 优先考虑下在己方死四的位置，以攻代守
+                // 其次考虑去堵敌方的活四，消极防守，垂死挣扎
+                selfBlockedFours.addAll(enermyAliveFours);
+                return selfBlockedFours;
+            } else {
+                // 堵敌方的活四，消极防守
+                return enermyAliveFours;
+            }
+        }
+
+        List<Coord> result = new ArrayList<>();
+        result.addAll(selfDoubleThrees);// 己方双活三
+        result.addAll(selfBlockedFours);// 己方死四
+        result.addAll(enermyDoubleThrees);// 敌方双活三
+        result.addAll(enermyBlockedFours);// 己方死四
+        Collections.sort(otherPositions);
+        for (CoordWithHeuristic coo : otherPositions) {
+            result.add(coo.coord);
+        }
+        return result;
+    }
+
+    /**
+     * 带有启发式函数值的坐标类，用于对空位进行排序
+     */
+    class CoordWithHeuristic implements Comparable<CoordWithHeuristic> {
+        /** 坐标 */
+        Coord coord;
+        /** 该位置的启发函数值 */
+        int h;
+
+        /**
+         * 构造函数
+         * 
+         * @param coord 坐标
+         * @param h     启发函数值
+         */
+        public CoordWithHeuristic(Coord coord, int h) {
+            this.coord = coord;
+            this.h = h;
+        }
+
+        @Override
+        public int compareTo(CoordWithHeuristic c2) {
+            return this.h - c2.h;
+        }
+    }
+
+    /**
+     * 评估函数，对整个棋盘的局势进行评估
+     * 
+     * @param type 己方棋子的类型
+     * 
+     * @return 评估值
+     */
+    public int evaluate(int type) {
+        int self, enermy;
+        if (type == COM_CHESS) {
+            self = COM_CHESS;
+            enermy = HUM_CHESS;
+        } else {
+            self = HUM_CHESS;
+            enermy = COM_CHESS;
+        }
+        int selfScore = evaluateOneSide(self);
+        int enermyScore = evaluateOneSide(enermy);
+        return selfScore - enermyScore;
+    }
+
+    /**
+     * 单方面评估函数，只针对某一方进行评估
+     * 
+     * @param type 对哪一方进行评估
+     * 
+     * @return 评估值
+     */
+    private int evaluateOneSide(int type) {
+        int self = type;
+        List<Integer> standardLine = null;
+        List<List<Integer>> standardLines = new ArrayList<>();
+        List<List<Coord>> coordLines = allLines();
+        for (List<Coord> coordLine : coordLines) {
+            standardLine = new ArrayList<>();
+            standardLine.add(StandardType.BLOCKED);// 首部加一个阻塞
+            for (Coord coord : coordLine) {
+                int x = coord.x;
+                int y = coord.y;
+                if (boardMatrix[x][y] == EMPTY_CHESS) {
+                    standardLine.add(StandardType.EMPTY);
+                } else if (boardMatrix[x][y] == self) {
+                    standardLine.add(StandardType.SELF);
+                } else {
+                    standardLine.add(StandardType.BLOCKED);
+                }
+            }
+            standardLine.add(StandardType.BLOCKED);// 尾部加一个阻塞
+            standardLines.add(standardLine);
+        }
+        return ScoreCalculator.scoreLines(standardLines);
     }
 
     // 各种工具static方法
+
+    /**
+     * 生成棋盘所有的直线的坐标
+     * 
+     * @retrun 所有的直线的坐标
+     */
+    private static List<List<Coord>> allLines() {
+        List<Coord> line = null;// 直线坐标
+        List<List<Coord>> lines = new ArrayList<>();// 装着所有的直线
+        // 水平直线
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            line = new ArrayList<>();
+            for (int y = 0; y < BOARD_SIZE; y++) {
+                line.add(new Coord(x, y));
+            }
+            lines.add(line);
+        }
+        // 竖直直线
+        for (int y = 0; y < BOARD_SIZE; y++) {
+            line = new ArrayList<>();
+            for (int x = 0; x < BOARD_SIZE; x++) {
+                line.add(new Coord(x, y));
+            }
+            lines.add(line);
+        }
+
+        int startX, startY;
+        // 对角线
+        for (startX = BOARD_SIZE - 1, startY = 0; startX >= 0; startX--) {
+            line = new ArrayList<>();
+            for (int x = startX, y = startY; x < BOARD_SIZE && y < BOARD_SIZE; x++, y++) {
+                line.add(new Coord(x, y));
+            }
+            if (line.size() >= 5) {
+                lines.add(line);
+            }
+        }
+        for (startX = 0, startY = 1; startY < BOARD_SIZE; startY++) {
+            line = new ArrayList<>();
+            for (int x = startX, y = startY; x < BOARD_SIZE && y < BOARD_SIZE; x++, y++) {
+                line.add(new Coord(x, y));
+            }
+            if (line.size() >= 5) {
+                lines.add(line);
+            }
+        }
+        // 反对角线
+        for (startX = BOARD_SIZE - 1, startY = BOARD_SIZE - 1; startX >= 0; startX--) {
+            line = new ArrayList<>();
+            for (int x = startX, y = startY; x < BOARD_SIZE && y >= 0; x++, y--) {
+                line.add(new Coord(x, y));
+            }
+            if (line.size() >= 5) {
+                lines.add(line);
+            }
+        }
+        for (startX = 0, startY = BOARD_SIZE - 2; startY >= 0; startY--) {
+            line = new ArrayList<>();
+            for (int x = startX, y = startY; x < BOARD_SIZE && y >= 0; x++, y--) {
+                line.add(new Coord(x, y));
+            }
+            if (line.size() >= 5) {
+                lines.add(line);
+            }
+        }
+        return lines;
+    }
 
     /**
      * @return (x,y)是否越界

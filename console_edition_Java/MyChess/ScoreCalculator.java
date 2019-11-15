@@ -7,8 +7,7 @@ import java.util.List;
 import MyChess.Score;
 
 /**
- * 根据棋形计算横线的分数
- * 横线是经过标准化之后的
+ * 根据棋形计算横线的分数 横线是经过标准化之后的
  */
 public class ScoreCalculator {
 
@@ -35,15 +34,36 @@ public class ScoreCalculator {
             { EMPTY, EMPTY, SELF, SELF, SELF, BLOCKED }, { BLOCKED, SELF, SELF, EMPTY, SELF, EMPTY },
             { EMPTY, SELF, EMPTY, SELF, SELF, BLOCKED } };
 
-    /**计算横线的得分 */
+    /**
+     * 计算单条直线的得分
+     * 
+     * @param line 标准化后的单条直线
+     * 
+     * @return 这条直线的得分
+     */
     public static int scoreLine(List<Integer> line) {
         int result = 0;
-        result += scoreFive(line);//连五
-        result += scoreAliveFour(line);//活四
-        result += scoreBlockedFour(line);//死四
-        result += scoreAliveThree(line);//活三
-        result += scoreBlockedThrees(line);//死三
-        result += scoreAliveTwo(line);//活二
+        result += scoreFive(line);// 连五
+        result += scoreAliveFour(line);// 活四
+        result += scoreBlockedFour(line);// 死四
+        result += scoreAliveThree(line);// 活三
+        result += scoreBlockedThrees(line);// 死三
+        result += scoreAliveTwo(line);// 活二
+        return result;
+    }
+
+    /**
+     * 计算若干条直线的得分之和
+     * 
+     * @param lines 标准化后的若干直线
+     * 
+     * @return 这些直线的得分之和
+     */
+    public static int scoreLines(List<List<Integer>> lines) {
+        int result = 0;
+        for (List<Integer> line : lines) {
+            result += scoreLine(line);
+        }
         return result;
     }
 
