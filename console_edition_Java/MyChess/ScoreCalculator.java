@@ -68,11 +68,15 @@ public class ScoreCalculator {
     }
 
     /** 对连五棋形打分的分数 */
-    private static int scoreFive(List<Integer> line) {
+    public static int scoreFive(List<Integer> line) {
         int result = 0;
         for (int i = 0; i < fives.length; i++) {
             result += occurredTimes(line, fives[i]) * Score.FIVE;
         }
+        //debug
+        // if (result > 0) {
+        //     System.out.println("连五个数 " + result);
+        // }
         return result;
     }
 
@@ -148,7 +152,8 @@ public class ScoreCalculator {
             if (j == plen) {
                 cnt++;
                 j = 0;
-                i = i - plen + 1;
+                // TODO 重叠匹配
+                // i = i - plen + 1;
                 // 可以部分重叠
                 continue;
             } else {

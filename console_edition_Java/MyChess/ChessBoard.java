@@ -231,11 +231,13 @@ public class ChessBoard {
      */
     private int score(List<Coord> coords, int chessType) {
         // 把coords所表示的横线标准化后再打分
+        //TODO 标准化
         List<Integer> standardLine = new ArrayList<>();
+        standardLine.add(StandardType.BLOCKED);
         for (Coord coord : coords) {
             int x = coord.x;
             int y = coord.y;
-            if (!outOfBound(x, y)) {
+            if (outOfBound(x, y)) {
                 standardLine.add(StandardType.BLOCKED);
             } else {
                 if (boardMatrix[x][y] == EMPTY_CHESS) {
@@ -247,6 +249,7 @@ public class ChessBoard {
                 }
             }
         }
+        standardLine.add(StandardType.BLOCKED);
         return scoreStandardLine(standardLine);
     }
 
@@ -394,24 +397,17 @@ public class ChessBoard {
     }
 
     /**
-     * 评估函数，对整个棋盘的局势进行评估
-     * 
-     * @param type 己方棋子的类型
+     * 评估函数，对整个棋盘的局势进行评估 越大电脑越有利，越小人类越有利
      * 
      * @return 评估值
      */
-    public int evaluate(int type) {
-        int self, enermy;
-        if (type == COM_CHESS) {
-            self = COM_CHESS;
-            enermy = HUM_CHESS;
-        } else {
-            self = HUM_CHESS;
-            enermy = COM_CHESS;
-        }
-        int selfScore = evaluateOneSide(self);
-        int enermyScore = evaluateOneSide(enermy);
-        return selfScore - enermyScore;
+    public int evaluate() {
+        // debug
+        //System.out.println("debug evaluate");
+
+        int comScore = evaluateOneSide(COM_CHESS);
+        int humScore = evaluateOneSide(HUM_CHESS);
+        return comScore - humScore;
     }
 
     /**
@@ -422,28 +418,117 @@ public class ChessBoard {
      * @return 评估值
      */
     private int evaluateOneSide(int type) {
-        int self = type;
-        List<Integer> standardLine = null;
-        List<List<Integer>> standardLines = new ArrayList<>();
-        List<List<Coord>> coordLines = allLines();
-        for (List<Coord> coordLine : coordLines) {
-            standardLine = new ArrayList<>();
-            standardLine.add(StandardType.BLOCKED);// 首部加一个阻塞
-            for (Coord coord : coordLine) {
-                int x = coord.x;
-                int y = coord.y;
+        // debug
+        //System.out.println("debug evaluate one side");
+
+        int result = 0;
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            for (int y = 0; y < BOARD_SIZE; y++) {
                 if (boardMatrix[x][y] == EMPTY_CHESS) {
-                    standardLine.add(StandardType.EMPTY);
-                } else if (boardMatrix[x][y] == self) {
-                    standardLine.add(StandardType.SELF);
-                } else {
-                    standardLine.add(StandardType.BLOCKED);
+                    result += heuristic(x, y, type);
                 }
             }
-            standardLine.add(StandardType.BLOCKED);// 尾部加一个阻塞
-            standardLines.add(standardLine);
         }
-        return ScoreCalculator.scoreLines(standardLines);
+        return result;
+        //TODO 修改过的局势评估函数
+        /*
+         * int self = type; List<Integer> standardLine = null; List<List<Integer>>
+         * standardLines = new ArrayList<>(); List<List<Coord>> coordLines = allLines();
+         * for (List<Coord> coordLine : coordLines) { standardLine = new ArrayList<>();
+         * standardLine.add(StandardType.BLOCKED);// 首部加一个阻塞 for (Coord coord :
+         * coordLine) { int x = coord.x; int y = coord.y; if (boardMatrix[x][y] ==
+         * EMPTY_CHESS) { standardLine.add(StandardType.EMPTY); } else if
+         * (boardMatrix[x][y] == self) { standardLine.add(StandardType.SELF); } else {
+         * standardLine.add(StandardType.BLOCKED); } }
+         * standardLine.add(StandardType.BLOCKED);// 尾部加一个阻塞
+         * standardLines.add(standardLine); } return
+         * ScoreCalculator.scoreLines(standardLines);
+         */
+    }
+
+    /**
+     * 在(x,y)被落子后，落子的那一方是否赢了
+     */
+    public boolean isWin(int x, int y) {
+        //TODO
+        List<Coord> coordList = lineCoords(x, y, Direction.VERTICAL);
+        List<Integer> standardLine = standardizeLine(coordList, boardMatrix[x][y]);
+        if (ScoreCalculator.scoreFive(standardLine) > 0) {
+            return true;
+        }
+        coordList = lineCoords(x, y, Direction.HORIZONTAL);
+        standardLine = standardizeLine(coordList, boardMatrix[x][y]);
+        if (ScoreCalculator.scoreFive(standardLine) > 0) {
+            return true;
+        }
+        coordList = lineCoords(x, y, Direction.DIAGONAL);
+        standardLine = standardizeLine(coordList, boardMatrix[x][y]);
+        if (ScoreCalculator.scoreFive(standardLine) > 0) {
+            return true;
+        }
+        coordList = lineCoords(x, y, Direction.ANTIDIAGONAL);
+        standardLine = standardizeLine(coordList, boardMatrix[x][y]);
+        if (ScoreCalculator.scoreFive(standardLine) > 0) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 把直线坐标变成标准化直线 坐标允许越界
+     */
+    private List<Integer> standardizeLine(List<Coord> line, int type) {
+        List<Integer> standardLine = new ArrayList<>();
+        standardLine.add(StandardType.BLOCKED);
+        for (Coord coord : line) {
+            int x = coord.x;
+            int y = coord.y;
+            if (outOfBound(x, y)) {
+                standardLine.add(StandardType.BLOCKED);
+            } else if (boardMatrix[x][y] == EMPTY_CHESS) {
+                standardLine.add(StandardType.EMPTY);
+            } else if (boardMatrix[x][y] == type) {
+                standardLine.add(StandardType.SELF);
+            } else {
+                standardLine.add(StandardType.BLOCKED);
+            }
+        }
+        standardLine.add(StandardType.BLOCKED);
+        return standardLine;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append("  ");
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            str.append(i % 10 + " ");
+        }
+        str.append("\n");
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            str.append(x % 10 + " ");
+            for (int y = 0; y < BOARD_SIZE; y++) {
+                if (boardMatrix[x][y] == EMPTY_CHESS) {
+                    // str.append(" ");
+                    str.append("＋");//□
+                } else if (boardMatrix[x][y] == COM_CHESS) {
+                    // str.append("O ");
+                    str.append("〇");//○
+                } else {
+                    // str.append("X ");
+                    str.append("●");
+                }
+            }
+            str.append("\n");
+        }
+        return str.toString();
+    }
+
+    /**
+     * 棋盘上棋子的总数
+     */
+    public int getNumber(){
+        return chessNum;
     }
 
     // 各种工具static方法
@@ -527,20 +612,20 @@ public class ChessBoard {
      */
     private static List<Coord> lineCoords(int x, int y, int direction) {
         List<Coord> coords = new ArrayList<>();
-        if (direction == Direction.VERTICAL) {
-            for (int j = y - 4; j <= y + 4; j++) {
-                coords.add(new Coord(x, j));
-            }
-        } else if (direction == Direction.HORIZONTAL) {
+        if (direction == Direction.VERTICAL) {//竖直方向
             for (int i = x - 4; i <= x + 4; i++) {
                 coords.add(new Coord(i, y));
             }
-        } else if (direction == Direction.DIAGONAL) {
+        } else if (direction == Direction.HORIZONTAL) {//水平方向
+            for (int j = y - 4; j <= y + 4; j++) {
+                coords.add(new Coord(x, j));
+            }
+        } else if (direction == Direction.DIAGONAL) {//对角线
             int i = x - 4, j = y - 4;
             for (int k = 0; k <= 8; k++) {
                 coords.add(new Coord(i + k, j + k));
             }
-        } else {
+        } else {//反对角线
             int i = x + 4, j = y - 4;
             for (int k = 0; k <= 8; k++) {
                 coords.add(new Coord(i - k, j + k));
