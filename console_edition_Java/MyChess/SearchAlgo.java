@@ -90,8 +90,8 @@ public class SearchAlgo {
         List<Coord> emptyPosList = board.generator(COM_CHESS);
         int cnt = 0;
         int maxd;
-        if (board.getNumber() <= 6) {
-            maxd = 4;
+        if (board.getNumber() <= 8) {
+            maxd = 5;
         } else {
             maxd = Config.MAX_DEPTH;
         }

@@ -1,198 +1,193 @@
 package MyChess;
 
 import static MyChess.StandardType.*;
+import MyChess.Score;
 
 import java.util.List;
 
-import MyChess.Score;
-
 /**
- * 根据棋形计算横线的分数 横线是经过标准化之后的
+ * ScoreCalculator2
  */
 public class ScoreCalculator {
-
-    /** 连五棋形 */
-    final private static int[][] fives = { { SELF, SELF, SELF, SELF, SELF } };
-    /** 活四棋形 */
-    final private static int[][] aliveFours = { { EMPTY, SELF, SELF, SELF, SELF, EMPTY } };
-    /** 活三棋形 */
-    final private static int[][] aliveThrees = { { EMPTY, SELF, SELF, SELF, EMPTY, EMPTY },
-            { EMPTY, EMPTY, SELF, SELF, SELF, EMPTY }, { EMPTY, SELF, EMPTY, SELF, SELF, EMPTY },
-            { EMPTY, SELF, SELF, EMPTY, SELF, EMPTY } };
-    /** 活二棋形 */
-    final private static int[][] aliveTwos = { { EMPTY, SELF, SELF, EMPTY, EMPTY, EMPTY },
-            { EMPTY, EMPTY, SELF, SELF, EMPTY, EMPTY }, { EMPTY, EMPTY, EMPTY, SELF, SELF, EMPTY },
-            { EMPTY, SELF, EMPTY, SELF, EMPTY, EMPTY }, { EMPTY, EMPTY, SELF, EMPTY, SELF, EMPTY },
-            { EMPTY, SELF, EMPTY, EMPTY, SELF, EMPTY } };
-    /** 死四棋形 */
-    final private static int[][] blockedFours = { { EMPTY, SELF, SELF, SELF, SELF, BLOCKED },
-            { BLOCKED, SELF, SELF, SELF, SELF, EMPTY }, { SELF, SELF, SELF, EMPTY, SELF },
-            { SELF, EMPTY, SELF, SELF, SELF }, { SELF, SELF, EMPTY, SELF, SELF } };
-    /** 死三棋形 */
-    final private static int[][] blockedThrees = { { SELF, EMPTY, SELF, EMPTY, SELF },
-            { SELF, SELF, EMPTY, EMPTY, SELF }, { BLOCKED, SELF, SELF, SELF, EMPTY, EMPTY },
-            { EMPTY, EMPTY, SELF, SELF, SELF, BLOCKED }, { BLOCKED, SELF, SELF, EMPTY, SELF, EMPTY },
-            { EMPTY, SELF, EMPTY, SELF, SELF, BLOCKED } };
+    private static int selfCnt[] = new int[11];
+    private static int emptyCnt[] = new int[11];
+    private static int blockedCnt[] = new int[11];
 
     /**
-     * 计算单条直线的得分
+     * 计算长度为9+2的单条标准直线的得分
      * 
-     * @param line 标准化后的单条直线
+     * @param line 标准的直线，长度为9+2
      * 
      * @return 这条直线的得分
      */
     public static int scoreLine(List<Integer> line) {
-        int result = 0;
-        result += scoreFive(line);// 连五
-        result += scoreAliveFour(line);// 活四
-        result += scoreBlockedFour(line);// 死四
-        result += scoreAliveThree(line);// 活三
-        result += scoreBlockedThrees(line);// 死三
-        result += scoreAliveTwo(line);// 活二
-        return result;
-    }
-
-    /**
-     * 计算若干条直线的得分之和
-     * 
-     * @param lines 标准化后的若干直线
-     * 
-     * @return 这些直线的得分之和
-     */
-    public static int scoreLines(List<List<Integer>> lines) {
-        int result = 0;
-        for (List<Integer> line : lines) {
-            result += scoreLine(line);
-        }
-        return result;
-    }
-
-    /** 对连五棋形打分的分数 */
-    public static int scoreFive(List<Integer> line) {
-        int result = 0;
-        for (int i = 0; i < fives.length; i++) {
-            result += occurredTimes(line, fives[i]) * Score.FIVE;
-        }
-        // debug
-        // if (result > 0) {
-        // System.out.println("连五个数 " + result);
-        // }
-        return result;
-    }
-
-    /** 对活四棋形打分的分数 */
-    private static int scoreAliveFour(List<Integer> line) {
-        int result = 0;
-        for (int i = 0; i < aliveFours.length; i++) {
-            result += occurredTimes(line, aliveFours[i]) * Score.ALIVE_FOUR;
-        }
-        return result;
-    }
-
-    /** 对死四棋形打分的分数 */
-    private static int scoreBlockedFour(List<Integer> line) {
-        int result = 0;
-        for (int i = 0; i < blockedFours.length; i++) {
-            result += occurredTimes(line, blockedFours[i]) * Score.BLOCKED_FOUR;
-        }
-        return result;
-    }
-
-    /** 对活三棋形打分的分数 */
-    private static int scoreAliveThree(List<Integer> line) {
-        int result = 0;
-        for (int i = 0; i < aliveThrees.length; i++) {
-            result += occurredTimes(line, aliveThrees[i]) * Score.ALIVE_THREE;
-        }
-        return result;
-    }
-
-    /** 对死三棋形打分的分数 */
-    private static int scoreBlockedThrees(List<Integer> line) {
-        int result = 0;
-        for (int i = 0; i < blockedThrees.length; i++) {
-            result += occurredTimes(line, blockedThrees[i]) * Score.BLOCKED_THREE;
-        }
-        return result;
-    }
-
-    /** 对活二棋形打分的分数 */
-    private static int scoreAliveTwo(List<Integer> line) {
-        int result = 0;
-        for (int i = 0; i < aliveTwos.length; i++) {
-            result += occurredTimes(line, aliveTwos[i]) * Score.ALIVE_TWO;
-        }
-        return result;
-    }
-
-    /**
-     * 用KMP算法统计模式串出现的次数，可以部分重叠
-     * 
-     * @param text    文本串
-     * @param pattern 模式串
-     * 
-     * @return 模式串出现次数
-     */
-    private static int occurredTimes(List<Integer> text, int[] pattern) {
-        int cnt = 0;
-        int[] pnext = getNextVal(pattern);
-        int tlen = text.size();
-        int plen = pattern.length;
-        if (tlen < plen) {
+        calcuArray(line);
+        if (hasFive(line)) {
+            return Score.FIVE;
+        } else if (hasAliveFour(line)) {
+            return Score.ALIVE_FOUR;
+        } else if (hasBlockedFour(line)) {
+            return Score.BLOCKED_FOUR;
+        } else if (hasAliveThree(line)) {
+            return Score.ALIVE_THREE;
+        } else if (hasBlockedThree(line)) {
+            return Score.BLOCKED_THREE;
+        } else if (hasAliveTwo(line)) {
+            return Score.ALIVE_TWO;
+        } else if (hasBlockedTwo(line)) {
+            return Score.BLOCKED_TWO;
+        } else {
             return 0;
         }
-        int i = 0;
-        int j = 0;
-        while (true) {
-            while (i < tlen && j < plen) {
-                if (j == -1 || text.get(i) == pattern[j]) {
-                    i++;
-                    j++;
-                } else {
-                    j = pnext[j];
-                }
-            }
-            if (j == plen) {
-                cnt++;
-                j = 0;
-                // TODO 重叠匹配
-                // i = i - plen + 1;
-                // 可以部分重叠
-                continue;
-            } else {
-                // i == tlen
-                break;
-            }
-        }
-        return cnt;
     }
 
     /**
-     * 计算模式串的nextval数组
+     * 计算出现次数的前缀和
      * 
-     * @param pattern 模式串
-     * 
-     * @return nextval数组
+     * @param line 标准化直线
      */
-    private static int[] getNextVal(int[] pattern) {
-        int len = pattern.length;
-        int[] next = new int[len];
-        next[0] = -1;
-        int k = -1;
-        int j = 0;
-        while (j + 1 < len) {
-            if (k == -1 || pattern[k] == pattern[j]) {
-                k++;
-                j++;
-                if (pattern[j] != pattern[k]) {
-                    next[j] = k;
-                } else {
-                    next[j] = next[k];
-                }
+    private static void calcuArray(List<Integer> line) {
+        selfCnt[0] = emptyCnt[0] = blockedCnt[0] = 0;
+        if (line.get(0) == SELF) {
+            selfCnt[0] = 1;
+        } else if (line.get(0) == EMPTY) {
+            emptyCnt[0] = 1;
+        } else {
+            blockedCnt[0] = 1;
+        }
+        for (int i = 1; i < line.size(); i++) {
+            if (line.get(i) == SELF) {
+                selfCnt[i] = selfCnt[i - 1] + 1;
+                emptyCnt[i] = emptyCnt[i - 1];
+                blockedCnt[i] = blockedCnt[i - 1];
+            } else if (line.get(i) == EMPTY) {
+                emptyCnt[i] = emptyCnt[i - 1] + 1;
+                selfCnt[i] = selfCnt[i - 1];
+                blockedCnt[i] = blockedCnt[i - 1];
             } else {
-                k = next[k];
+                blockedCnt[i] = blockedCnt[i - 1] + 1;
+                selfCnt[i] = selfCnt[i - 1];
+                emptyCnt[i] = emptyCnt[i - 1];
             }
         }
-        return next;
     }
+
+    /**
+     * 闭区间[left, right]内type的出现次数
+     * 
+     * @param left  区间左端点
+     * @param right 区间右端点
+     * @param type  标准棋子类型
+     * @return 出现次数
+     */
+    private static int cnt(int left, int right, int type) {
+        int cntArray[];
+        if (type == SELF) {
+            cntArray = selfCnt;
+        } else if (type == EMPTY) {
+            cntArray = emptyCnt;
+        } else {
+            cntArray = blockedCnt;
+        }
+        if (left == 0) {
+            return cntArray[right];
+        } else {
+            return cntArray[right] - cntArray[left - 1];
+        }
+    }
+
+    /** 是否有连五出现 */
+    private static boolean hasFive(List<Integer> line) {
+        // 5个一组，5个1
+        int left, right;
+        for (left = 0; left + 5 - 1 < line.size(); left++) {
+            right = left + 5 - 1;
+            if (cnt(left, right, SELF) == 5) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 是否有活四出现 */
+    private static boolean hasAliveFour(List<Integer> line) {
+        // 6个一组，两头0，4个1，2个0
+        int left, right;
+        for (left = 0; left + 6 - 1 < line.size(); left++) {
+            right = left + 6 - 1;
+            if (line.get(left) == 0 && line.get(right) == 0 && cnt(left, right, SELF) == 4
+                    && cnt(left, right, EMPTY) == 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 是否有死四出现 */
+    private static boolean hasBlockedFour(List<Integer> line) {
+        // 5个一组，4个1，1个0
+        int left, right;
+        for (left = 0; left + 5 - 1 < line.size(); left++) {
+            right = left + 5 - 1;
+            if (cnt(left, right, SELF) == 4 && cnt(left, right, EMPTY) == 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 是否有活三出现 */
+    private static boolean hasAliveThree(List<Integer> line) {
+        // 6个一组，两头0，3个1，3个0
+        int left, right;
+        for (left = 0; left + 6 - 1 < line.size(); left++) {
+            right = left + 6 - 1;
+            if (line.get(left) == 0 && line.get(right) == 0 && cnt(left, right, SELF) == 3
+                    && cnt(left, right, EMPTY) == 3) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 是否有死三出现 */
+    private static boolean hasBlockedThree(List<Integer> line) {
+        // 5个1组，3个1，2个0
+        int left, right;
+        for (left = 0; left + 5 - 1 < line.size(); left++) {
+            right = left + 5 - 1;
+            if (cnt(left, right, SELF) == 3 && cnt(left, right, EMPTY) == 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 是否有活二出现 */
+    private static boolean hasAliveTwo(List<Integer> line) {
+        // 6个一组，两头0，2个1，4个0
+        int left, right;
+        for (left = 0; left + 6 - 1 < line.size(); left++) {
+            right = left + 6 - 1;
+            if (line.get(left) == 0 && line.get(right) == 0 && cnt(left, right, SELF) == 2
+                    && cnt(left, right, EMPTY) == 4) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 是否有死二出现 */
+    private static boolean hasBlockedTwo(List<Integer> line) {
+        // 5个一组，2个1，3个0
+        int left, right;
+        for (left = 0; left + 5 - 1 < line.size(); left++) {
+            right = left + 5 - 1;
+            if (cnt(left, right, SELF) == 2 && cnt(left, right, EMPTY) == 3) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

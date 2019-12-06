@@ -323,8 +323,8 @@ public class ChessBoard {
      * @param y 中心位置的列号
      */
     private void updateHeuristicAfterDo(int x, int y) {
-        //TODO 有邻居才更新启发函数
-        //有邻居才更新米字范围的启发函数
+        // TODO 有邻居才更新启发函数
+        // 有邻居才更新米字范围的启发函数
         if (!neighborMatrix[x][y]) {
             return;
         }
@@ -416,26 +416,8 @@ public class ChessBoard {
      */
     private int score(List<Coord> coords, int chessType) {
         // 把coords所表示的横线标准化后再打分
-        // TODO 标准化
-        List<Integer> standardLine = new ArrayList<>();
-        standardLine.add(StandardType.BLOCKED);
-        for (Coord coord : coords) {
-            int x = coord.x;
-            int y = coord.y;
-            if (outOfBound(x, y)) {
-                standardLine.add(StandardType.BLOCKED);
-            } else {
-                if (boardMatrix[x][y] == EMPTY_CHESS) {
-                    standardLine.add(StandardType.EMPTY);
-                } else if (boardMatrix[x][y] == chessType) {
-                    standardLine.add(StandardType.SELF);
-                } else {
-                    standardLine.add(StandardType.BLOCKED);
-                }
-            }
-        }
-        standardLine.add(StandardType.BLOCKED);
-        return scoreStandardLine(standardLine);
+        List<Integer> standardLine = standardizeLine(coords, chessType);
+        return ScoreCalculator.scoreLine(standardLine);
     }
 
     /**
@@ -475,7 +457,7 @@ public class ChessBoard {
             self = HUM_CHESS;
             enermy = COM_CHESS;
         }
-        // 某一方放在该空位能连五
+        // 己方或敌方放在该空位能连五
         List<Coord> fives = new ArrayList<>();
         // 己方放在该空位能活四
         List<Coord> selfAliveFours = new ArrayList<>();
@@ -543,6 +525,7 @@ public class ChessBoard {
             }
         }
 
+        // 己方这一手和敌方下一手都不能连五或者活四
         List<Coord> result = new ArrayList<>();
         result.addAll(selfDoubleThrees);// 己方成双活三
         result.addAll(selfBlockedFours);// 己方成死四
@@ -631,35 +614,28 @@ public class ChessBoard {
      * 在(x,y)被落子后，落子的那一方是否赢了
      */
     public boolean isWin(int x, int y) {
-        // 如果没有邻居，不可能有人赢
-        if (!neighborMatrix[x][y]) {
-            return false;
-        }
-        List<Coord> coordList = lineCoords(x, y, Direction.VERTICAL);
-        List<Integer> standardLine = standardizeLine(coordList, boardMatrix[x][y]);
-        if (ScoreCalculator.scoreFive(standardLine) > 0) {
-            return true;
-        }
-        coordList = lineCoords(x, y, Direction.HORIZONTAL);
-        standardLine = standardizeLine(coordList, boardMatrix[x][y]);
-        if (ScoreCalculator.scoreFive(standardLine) > 0) {
-            return true;
-        }
-        coordList = lineCoords(x, y, Direction.DIAGONAL);
-        standardLine = standardizeLine(coordList, boardMatrix[x][y]);
-        if (ScoreCalculator.scoreFive(standardLine) > 0) {
-            return true;
-        }
-        coordList = lineCoords(x, y, Direction.ANTIDIAGONAL);
-        standardLine = standardizeLine(coordList, boardMatrix[x][y]);
-        if (ScoreCalculator.scoreFive(standardLine) > 0) {
-            return true;
-        }
-        return false;
+        // 因为落子之前肯定是个空格，直接看这个地方是空格时的启发函数值即可
+        return heuristic(x, y, boardMatrix[x][y]) >= Score.INF;
+
+        /*
+         * // 如果没有邻居，不可能有人赢 if (!neighborMatrix[x][y]) { return false; } List<Coord>
+         * coordList = lineCoords(x, y, Direction.VERTICAL); List<Integer> standardLine
+         * = standardizeLine(coordList, boardMatrix[x][y]); if
+         * (ScoreCalculator.scoreFive(standardLine) > 0) { return true; } coordList =
+         * lineCoords(x, y, Direction.HORIZONTAL); standardLine =
+         * standardizeLine(coordList, boardMatrix[x][y]); if
+         * (ScoreCalculator.scoreFive(standardLine) > 0) { return true; } coordList =
+         * lineCoords(x, y, Direction.DIAGONAL); standardLine =
+         * standardizeLine(coordList, boardMatrix[x][y]); if
+         * (ScoreCalculator.scoreFive(standardLine) > 0) { return true; } coordList =
+         * lineCoords(x, y, Direction.ANTIDIAGONAL); standardLine =
+         * standardizeLine(coordList, boardMatrix[x][y]); if
+         * (ScoreCalculator.scoreFive(standardLine) > 0) { return true; } return false;
+         */
     }
 
     /**
-     * 把直线坐标变成标准化直线 坐标允许越界
+     * 把直线坐标变成标准化直线 坐标允许越界 两头添加阻塞
      */
     private List<Integer> standardizeLine(List<Coord> line, int type) {
         List<Integer> standardLine = new ArrayList<>();
@@ -722,67 +698,29 @@ public class ChessBoard {
      * 
      * @retrun 所有的直线的坐标
      */
-    /*private static List<List<Coord>> allLines() {
-        List<Coord> line = null;// 直线坐标
-        List<List<Coord>> lines = new ArrayList<>();// 装着所有的直线
-        // 水平直线
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            line = new ArrayList<>();
-            for (int y = 0; y < BOARD_SIZE; y++) {
-                line.add(new Coord(x, y));
-            }
-            lines.add(line);
-        }
-        // 竖直直线
-        for (int y = 0; y < BOARD_SIZE; y++) {
-            line = new ArrayList<>();
-            for (int x = 0; x < BOARD_SIZE; x++) {
-                line.add(new Coord(x, y));
-            }
-            lines.add(line);
-        }
-
-        int startX, startY;
-        // 对角线
-        for (startX = BOARD_SIZE - 1, startY = 0; startX >= 0; startX--) {
-            line = new ArrayList<>();
-            for (int x = startX, y = startY; x < BOARD_SIZE && y < BOARD_SIZE; x++, y++) {
-                line.add(new Coord(x, y));
-            }
-            if (line.size() >= 5) {
-                lines.add(line);
-            }
-        }
-        for (startX = 0, startY = 1; startY < BOARD_SIZE; startY++) {
-            line = new ArrayList<>();
-            for (int x = startX, y = startY; x < BOARD_SIZE && y < BOARD_SIZE; x++, y++) {
-                line.add(new Coord(x, y));
-            }
-            if (line.size() >= 5) {
-                lines.add(line);
-            }
-        }
-        // 反对角线
-        for (startX = BOARD_SIZE - 1, startY = BOARD_SIZE - 1; startX >= 0; startX--) {
-            line = new ArrayList<>();
-            for (int x = startX, y = startY; x < BOARD_SIZE && y >= 0; x++, y--) {
-                line.add(new Coord(x, y));
-            }
-            if (line.size() >= 5) {
-                lines.add(line);
-            }
-        }
-        for (startX = 0, startY = BOARD_SIZE - 2; startY >= 0; startY--) {
-            line = new ArrayList<>();
-            for (int x = startX, y = startY; x < BOARD_SIZE && y >= 0; x++, y--) {
-                line.add(new Coord(x, y));
-            }
-            if (line.size() >= 5) {
-                lines.add(line);
-            }
-        }
-        return lines;
-    }*/
+    /*
+     * private static List<List<Coord>> allLines() { List<Coord> line = null;// 直线坐标
+     * List<List<Coord>> lines = new ArrayList<>();// 装着所有的直线 // 水平直线 for (int x =
+     * 0; x < BOARD_SIZE; x++) { line = new ArrayList<>(); for (int y = 0; y <
+     * BOARD_SIZE; y++) { line.add(new Coord(x, y)); } lines.add(line); } // 竖直直线
+     * for (int y = 0; y < BOARD_SIZE; y++) { line = new ArrayList<>(); for (int x =
+     * 0; x < BOARD_SIZE; x++) { line.add(new Coord(x, y)); } lines.add(line); }
+     * 
+     * int startX, startY; // 对角线 for (startX = BOARD_SIZE - 1, startY = 0; startX
+     * >= 0; startX--) { line = new ArrayList<>(); for (int x = startX, y = startY;
+     * x < BOARD_SIZE && y < BOARD_SIZE; x++, y++) { line.add(new Coord(x, y)); } if
+     * (line.size() >= 5) { lines.add(line); } } for (startX = 0, startY = 1; startY
+     * < BOARD_SIZE; startY++) { line = new ArrayList<>(); for (int x = startX, y =
+     * startY; x < BOARD_SIZE && y < BOARD_SIZE; x++, y++) { line.add(new Coord(x,
+     * y)); } if (line.size() >= 5) { lines.add(line); } } // 反对角线 for (startX =
+     * BOARD_SIZE - 1, startY = BOARD_SIZE - 1; startX >= 0; startX--) { line = new
+     * ArrayList<>(); for (int x = startX, y = startY; x < BOARD_SIZE && y >= 0;
+     * x++, y--) { line.add(new Coord(x, y)); } if (line.size() >= 5) {
+     * lines.add(line); } } for (startX = 0, startY = BOARD_SIZE - 2; startY >= 0;
+     * startY--) { line = new ArrayList<>(); for (int x = startX, y = startY; x <
+     * BOARD_SIZE && y >= 0; x++, y--) { line.add(new Coord(x, y)); } if
+     * (line.size() >= 5) { lines.add(line); } } return lines; }
+     */
 
     /**
      * @return (x,y)是否越界
@@ -818,13 +756,4 @@ public class ChessBoard {
         return coords;
     }
 
-    /**
-     * 对一条标准化的横线按照棋形进行打分
-     * 
-     * @param line 标准化后的横线
-     * @return 该横线的分数
-     */
-    private static int scoreStandardLine(List<Integer> line) {
-        return ScoreCalculator.scoreLine(line);
-    }
 }
