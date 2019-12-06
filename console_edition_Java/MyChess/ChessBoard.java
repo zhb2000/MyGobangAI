@@ -73,8 +73,6 @@ public class ChessBoard {
         }
         boardMatrix[x][y] = EMPTY_CHESS;
         chessNum--;// 更新棋子总数
-        // updateHeuristicAfterDo(x, y);// 更新启发函数矩阵
-        // updateNeighborAfterDo(x, y);// 更新邻居矩阵
         restoreNeighbor(x, y, oldNeighbor);
         restoreHeuristic(x, y, oldHeuristic[0], oldHeuristic[1]);
         return true;
@@ -169,7 +167,6 @@ public class ChessBoard {
 
     /** [hum[][][], com[][][]] */
     public int[][][][] backupHeuristic(int x, int y) {
-        // TODO backupHeuristic
         int[][][] oldHum = new int[BOARD_SIZE][BOARD_SIZE][4];
         int[][][] oldCom = new int[BOARD_SIZE][BOARD_SIZE][4];
         // 垂直方向更新
@@ -323,11 +320,6 @@ public class ChessBoard {
      * @param y 中心位置的列号
      */
     private void updateHeuristicAfterDo(int x, int y) {
-        // TODO 有邻居才更新启发函数
-        // 有邻居才更新米字范围的启发函数
-        if (!neighborMatrix[x][y]) {
-            return;
-        }
         // 更新附近的空格的启发函数值，米字范围内的空格都要更新
         // 垂直方向更新
         List<Coord> verticals = lineCoords(x, y, Direction.VERTICAL);
@@ -538,6 +530,39 @@ public class ChessBoard {
         return result;
     }
 
+    /**算杀 */
+    public List<Coord> generatorKill(int type) {
+        int self, enermy;
+        if (type == COM_CHESS) {
+            self = COM_CHESS;
+            enermy = HUM_CHESS;
+        } else {
+            self = HUM_CHESS;
+            enermy = COM_CHESS;
+        }
+        // 己方或敌方放在该空位能连五、活四、死四、活三
+        List<CoordWithHeuristic> result = new ArrayList<>();
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            for (int y = 0; y < BOARD_SIZE; y++) {
+                // 这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
+                if (boardMatrix[x][y] == EMPTY_CHESS && neighborMatrix[x][y]) {
+                    Coord coord = new Coord(x, y);
+                    int selfPosScore = heuristic(x, y, self);
+                    int enermyPosScore = heuristic(x, y, enermy);
+                    if (selfPosScore >= Score.ALIVE_THREE || enermyPosScore >= Score.ALIVE_THREE) {
+                        result.add(new CoordWithHeuristic(coord, Math.max(selfPosScore, enermyPosScore)));
+                    }
+                }
+            }
+        }
+        Collections.sort(result);
+        List<Coord> returnArray = new ArrayList<>();
+        for (CoordWithHeuristic c : result) {
+            returnArray.add(c.coord);
+        }
+        return returnArray;
+    }
+
     /**
      * 带有启发式函数值的坐标类，用于对空位进行排序
      */
@@ -592,8 +617,6 @@ public class ChessBoard {
             }
         }
         return result;
-
-        // TODO 修改过的局势评估函数
 
         /*
          * int self = type; List<Integer> standardLine = null; List<List<Integer>>
