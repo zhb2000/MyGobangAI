@@ -73,9 +73,9 @@ public class ScoreCalculator {
         for (int i = 0; i < fives.length; i++) {
             result += occurredTimes(line, fives[i]) * Score.FIVE;
         }
-        //debug
+        // debug
         // if (result > 0) {
-        //     System.out.println("连五个数 " + result);
+        // System.out.println("连五个数 " + result);
         // }
         return result;
     }
@@ -138,6 +138,9 @@ public class ScoreCalculator {
         int[] pnext = getNextVal(pattern);
         int tlen = text.size();
         int plen = pattern.length;
+        if (tlen < plen) {
+            return 0;
+        }
         int i = 0;
         int j = 0;
         while (true) {

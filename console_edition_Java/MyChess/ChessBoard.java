@@ -51,8 +51,8 @@ public class ChessBoard {
         }
         boardMatrix[x][y] = type;
         chessNum++;// 更新棋子总数
-        updateHeuristicAfterDo(x, y);// 更新启发函数矩阵
         updateNeighborAfterDo(x, y);// 更新邻居矩阵
+        updateHeuristicAfterDo(x, y);// 更新启发函数矩阵
         return true;
     }
 
@@ -64,7 +64,7 @@ public class ChessBoard {
      * 
      * @return 操作是否合法
      */
-    public boolean undo(int x, int y) {
+    public boolean undo(int x, int y, boolean[][] oldNeighbor, int[][][][] oldHeuristic) {
         if (outOfBound(x, y)) {
             return false;
         }
@@ -73,8 +73,10 @@ public class ChessBoard {
         }
         boardMatrix[x][y] = EMPTY_CHESS;
         chessNum--;// 更新棋子总数
-        updateHeuristicAfterDo(x, y);// 更新启发函数矩阵
-        updateNeighborAfterDo(x, y);// 更新邻居矩阵
+        // updateHeuristicAfterDo(x, y);// 更新启发函数矩阵
+        // updateNeighborAfterDo(x, y);// 更新邻居矩阵
+        restoreNeighbor(x, y, oldNeighbor);
+        restoreHeuristic(x, y, oldHeuristic[0], oldHeuristic[1]);
         return true;
     }
 
@@ -85,6 +87,35 @@ public class ChessBoard {
      */
     public boolean isFull() {
         return chessNum == BOARD_SIZE * BOARD_SIZE;
+    }
+
+    /**
+     * 备份hasNeighbor矩阵
+     * 
+     * @param x 落子的行号
+     * @param y 落子的列号
+     * @return 5*5数组
+     */
+    public boolean[][] backupNeighbor(int x, int y) {
+        boolean[][] oldNeighbor = new boolean[BOARD_SIZE][BOARD_SIZE];
+        for (int i = x - 2; i <= x + 2; i++) {
+            for (int j = y - 2; j <= y + 2; j++) {
+                if (!outOfBound(i, j)) {
+                    oldNeighbor[i][j] = neighborMatrix[i][j];
+                }
+            }
+        }
+        return oldNeighbor;
+    }
+
+    private void restoreNeighbor(int x, int y, boolean[][] oldNeighbor) {
+        for (int i = x - 2; i <= x + 2; i++) {
+            for (int j = y - 2; j <= y + 2; j++) {
+                if (!outOfBound(i, j)) {
+                    neighborMatrix[i][j] = oldNeighbor[i][j];
+                }
+            }
+        }
     }
 
     /**
@@ -136,6 +167,155 @@ public class ChessBoard {
         neighborMatrix[x][y] = hasNeighbor;
     }
 
+    /** [hum[][][], com[][][]] */
+    public int[][][][] backupHeuristic(int x, int y) {
+        // TODO backupHeuristic
+        int[][][] oldHum = new int[BOARD_SIZE][BOARD_SIZE][4];
+        int[][][] oldCom = new int[BOARD_SIZE][BOARD_SIZE][4];
+        // 垂直方向更新
+        List<Coord> verticals = lineCoords(x, y, Direction.VERTICAL);
+        for (Coord coord : verticals) {
+            int ux = coord.x;
+            int uy = coord.y;
+            // 未越界
+            if (!outOfBound(ux, uy)) {
+                oldHum[ux][uy][Direction.VERTICAL] = humHeuristic[ux][uy][Direction.VERTICAL];
+                oldHum[ux][uy][Direction.HORIZONTAL] = humHeuristic[ux][uy][Direction.HORIZONTAL];
+                oldHum[ux][uy][Direction.DIAGONAL] = humHeuristic[ux][uy][Direction.DIAGONAL];
+                oldHum[ux][uy][Direction.ANTIDIAGONAL] = humHeuristic[ux][uy][Direction.ANTIDIAGONAL];
+
+                oldCom[ux][uy][Direction.VERTICAL] = comHeuristic[ux][uy][Direction.VERTICAL];
+                oldCom[ux][uy][Direction.HORIZONTAL] = comHeuristic[ux][uy][Direction.HORIZONTAL];
+                oldCom[ux][uy][Direction.DIAGONAL] = comHeuristic[ux][uy][Direction.DIAGONAL];
+                oldCom[ux][uy][Direction.ANTIDIAGONAL] = comHeuristic[ux][uy][Direction.ANTIDIAGONAL];
+            }
+        }
+        // 水平方向更新
+        List<Coord> horizontals = lineCoords(x, y, Direction.HORIZONTAL);
+        for (Coord coord : horizontals) {
+            int ux = coord.x;
+            int uy = coord.y;
+            if (!outOfBound(ux, uy)) {
+                oldHum[ux][uy][Direction.VERTICAL] = humHeuristic[ux][uy][Direction.VERTICAL];
+                oldHum[ux][uy][Direction.HORIZONTAL] = humHeuristic[ux][uy][Direction.HORIZONTAL];
+                oldHum[ux][uy][Direction.DIAGONAL] = humHeuristic[ux][uy][Direction.DIAGONAL];
+                oldHum[ux][uy][Direction.ANTIDIAGONAL] = humHeuristic[ux][uy][Direction.ANTIDIAGONAL];
+
+                oldCom[ux][uy][Direction.VERTICAL] = comHeuristic[ux][uy][Direction.VERTICAL];
+                oldCom[ux][uy][Direction.HORIZONTAL] = comHeuristic[ux][uy][Direction.HORIZONTAL];
+                oldCom[ux][uy][Direction.DIAGONAL] = comHeuristic[ux][uy][Direction.DIAGONAL];
+                oldCom[ux][uy][Direction.ANTIDIAGONAL] = comHeuristic[ux][uy][Direction.ANTIDIAGONAL];
+            }
+        }
+        // 对角线方向
+        List<Coord> diagonals = lineCoords(x, y, Direction.DIAGONAL);
+        for (Coord coord : diagonals) {
+            int ux = coord.x;
+            int uy = coord.y;
+            if (!outOfBound(ux, uy)) {
+                oldHum[ux][uy][Direction.VERTICAL] = humHeuristic[ux][uy][Direction.VERTICAL];
+                oldHum[ux][uy][Direction.HORIZONTAL] = humHeuristic[ux][uy][Direction.HORIZONTAL];
+                oldHum[ux][uy][Direction.DIAGONAL] = humHeuristic[ux][uy][Direction.DIAGONAL];
+                oldHum[ux][uy][Direction.ANTIDIAGONAL] = humHeuristic[ux][uy][Direction.ANTIDIAGONAL];
+
+                oldCom[ux][uy][Direction.VERTICAL] = comHeuristic[ux][uy][Direction.VERTICAL];
+                oldCom[ux][uy][Direction.HORIZONTAL] = comHeuristic[ux][uy][Direction.HORIZONTAL];
+                oldCom[ux][uy][Direction.DIAGONAL] = comHeuristic[ux][uy][Direction.DIAGONAL];
+                oldCom[ux][uy][Direction.ANTIDIAGONAL] = comHeuristic[ux][uy][Direction.ANTIDIAGONAL];
+            }
+        }
+        // 反对角线方向
+        List<Coord> antidiagonals = lineCoords(x, y, Direction.ANTIDIAGONAL);
+        for (Coord coord : antidiagonals) {
+            int ux = coord.x;
+            int uy = coord.y;
+            if (!outOfBound(ux, uy)) {
+                oldHum[ux][uy][Direction.VERTICAL] = humHeuristic[ux][uy][Direction.VERTICAL];
+                oldHum[ux][uy][Direction.HORIZONTAL] = humHeuristic[ux][uy][Direction.HORIZONTAL];
+                oldHum[ux][uy][Direction.DIAGONAL] = humHeuristic[ux][uy][Direction.DIAGONAL];
+                oldHum[ux][uy][Direction.ANTIDIAGONAL] = humHeuristic[ux][uy][Direction.ANTIDIAGONAL];
+
+                oldCom[ux][uy][Direction.VERTICAL] = comHeuristic[ux][uy][Direction.VERTICAL];
+                oldCom[ux][uy][Direction.HORIZONTAL] = comHeuristic[ux][uy][Direction.HORIZONTAL];
+                oldCom[ux][uy][Direction.DIAGONAL] = comHeuristic[ux][uy][Direction.DIAGONAL];
+                oldCom[ux][uy][Direction.ANTIDIAGONAL] = comHeuristic[ux][uy][Direction.ANTIDIAGONAL];
+            }
+        }
+        return new int[][][][] { oldHum, oldCom };
+    }
+
+    private void restoreHeuristic(int x, int y, int[][][] oldHum, int[][][] oldCom) {
+        // 垂直方向恢复
+        List<Coord> verticals = lineCoords(x, y, Direction.VERTICAL);
+        for (Coord coord : verticals) {
+            int ux = coord.x;
+            int uy = coord.y;
+            // 未越界
+            if (!outOfBound(ux, uy)) {
+                humHeuristic[ux][uy][Direction.VERTICAL] = oldHum[ux][uy][Direction.VERTICAL];
+                humHeuristic[ux][uy][Direction.HORIZONTAL] = oldHum[ux][uy][Direction.HORIZONTAL];
+                humHeuristic[ux][uy][Direction.DIAGONAL] = oldHum[ux][uy][Direction.DIAGONAL];
+                humHeuristic[ux][uy][Direction.ANTIDIAGONAL] = oldHum[ux][uy][Direction.ANTIDIAGONAL];
+
+                comHeuristic[ux][uy][Direction.VERTICAL] = oldCom[ux][uy][Direction.VERTICAL];
+                comHeuristic[ux][uy][Direction.HORIZONTAL] = oldCom[ux][uy][Direction.HORIZONTAL];
+                comHeuristic[ux][uy][Direction.DIAGONAL] = oldCom[ux][uy][Direction.DIAGONAL];
+                comHeuristic[ux][uy][Direction.ANTIDIAGONAL] = oldCom[ux][uy][Direction.ANTIDIAGONAL];
+            }
+        }
+        // 水平方向恢复
+        List<Coord> horizontals = lineCoords(x, y, Direction.HORIZONTAL);
+        for (Coord coord : horizontals) {
+            int ux = coord.x;
+            int uy = coord.y;
+            if (!outOfBound(ux, uy)) {
+                humHeuristic[ux][uy][Direction.VERTICAL] = oldHum[ux][uy][Direction.VERTICAL];
+                humHeuristic[ux][uy][Direction.HORIZONTAL] = oldHum[ux][uy][Direction.HORIZONTAL];
+                humHeuristic[ux][uy][Direction.DIAGONAL] = oldHum[ux][uy][Direction.DIAGONAL];
+                humHeuristic[ux][uy][Direction.ANTIDIAGONAL] = oldHum[ux][uy][Direction.ANTIDIAGONAL];
+
+                comHeuristic[ux][uy][Direction.VERTICAL] = oldCom[ux][uy][Direction.VERTICAL];
+                comHeuristic[ux][uy][Direction.HORIZONTAL] = oldCom[ux][uy][Direction.HORIZONTAL];
+                comHeuristic[ux][uy][Direction.DIAGONAL] = oldCom[ux][uy][Direction.DIAGONAL];
+                comHeuristic[ux][uy][Direction.ANTIDIAGONAL] = oldCom[ux][uy][Direction.ANTIDIAGONAL];
+            }
+        }
+        // 对角线方向
+        List<Coord> diagonals = lineCoords(x, y, Direction.DIAGONAL);
+        for (Coord coord : diagonals) {
+            int ux = coord.x;
+            int uy = coord.y;
+            if (!outOfBound(ux, uy)) {
+                humHeuristic[ux][uy][Direction.VERTICAL] = oldHum[ux][uy][Direction.VERTICAL];
+                humHeuristic[ux][uy][Direction.HORIZONTAL] = oldHum[ux][uy][Direction.HORIZONTAL];
+                humHeuristic[ux][uy][Direction.DIAGONAL] = oldHum[ux][uy][Direction.DIAGONAL];
+                humHeuristic[ux][uy][Direction.ANTIDIAGONAL] = oldHum[ux][uy][Direction.ANTIDIAGONAL];
+
+                comHeuristic[ux][uy][Direction.VERTICAL] = oldCom[ux][uy][Direction.VERTICAL];
+                comHeuristic[ux][uy][Direction.HORIZONTAL] = oldCom[ux][uy][Direction.HORIZONTAL];
+                comHeuristic[ux][uy][Direction.DIAGONAL] = oldCom[ux][uy][Direction.DIAGONAL];
+                comHeuristic[ux][uy][Direction.ANTIDIAGONAL] = oldCom[ux][uy][Direction.ANTIDIAGONAL];
+            }
+        }
+        // 反对角线方向
+        List<Coord> antidiagonals = lineCoords(x, y, Direction.ANTIDIAGONAL);
+        for (Coord coord : antidiagonals) {
+            int ux = coord.x;
+            int uy = coord.y;
+            if (!outOfBound(ux, uy)) {
+                humHeuristic[ux][uy][Direction.VERTICAL] = oldHum[ux][uy][Direction.VERTICAL];
+                humHeuristic[ux][uy][Direction.HORIZONTAL] = oldHum[ux][uy][Direction.HORIZONTAL];
+                humHeuristic[ux][uy][Direction.DIAGONAL] = oldHum[ux][uy][Direction.DIAGONAL];
+                humHeuristic[ux][uy][Direction.ANTIDIAGONAL] = oldHum[ux][uy][Direction.ANTIDIAGONAL];
+
+                comHeuristic[ux][uy][Direction.VERTICAL] = oldCom[ux][uy][Direction.VERTICAL];
+                comHeuristic[ux][uy][Direction.HORIZONTAL] = oldCom[ux][uy][Direction.HORIZONTAL];
+                comHeuristic[ux][uy][Direction.DIAGONAL] = oldCom[ux][uy][Direction.DIAGONAL];
+                comHeuristic[ux][uy][Direction.ANTIDIAGONAL] = oldCom[ux][uy][Direction.ANTIDIAGONAL];
+            }
+        }
+    }
+
     /**
      * 落子或撤销后对启发函数值矩阵进行更新
      * 
@@ -143,8 +323,13 @@ public class ChessBoard {
      * @param y 中心位置的列号
      */
     private void updateHeuristicAfterDo(int x, int y) {
+        //TODO 有邻居才更新启发函数
+        //有邻居才更新米字范围的启发函数
+        if (!neighborMatrix[x][y]) {
+            return;
+        }
         // 更新附近的空格的启发函数值，米字范围内的空格都要更新
-        // 垂直方向
+        // 垂直方向更新
         List<Coord> verticals = lineCoords(x, y, Direction.VERTICAL);
         for (Coord coord : verticals) {
             int ux = coord.x;
@@ -154,7 +339,7 @@ public class ChessBoard {
                 calcuHeuristic(ux, uy, Direction.VERTICAL);
             }
         }
-        // 水平方向
+        // 水平方向更新
         List<Coord> horizontals = lineCoords(x, y, Direction.HORIZONTAL);
         for (Coord coord : horizontals) {
             int ux = coord.x;
@@ -163,7 +348,7 @@ public class ChessBoard {
                 calcuHeuristic(ux, uy, Direction.HORIZONTAL);
             }
         }
-        // 对角线方向
+        // 对角线方向更新
         List<Coord> diagonals = lineCoords(x, y, Direction.DIAGONAL);
         for (Coord coord : diagonals) {
             int ux = coord.x;
@@ -172,7 +357,7 @@ public class ChessBoard {
                 calcuHeuristic(ux, uy, Direction.DIAGONAL);
             }
         }
-        // 反对角线方向
+        // 反对角线方向更新
         List<Coord> antidiagonals = lineCoords(x, y, Direction.ANTIDIAGONAL);
         for (Coord coord : antidiagonals) {
             int ux = coord.x;
@@ -231,7 +416,7 @@ public class ChessBoard {
      */
     private int score(List<Coord> coords, int chessType) {
         // 把coords所表示的横线标准化后再打分
-        //TODO 标准化
+        // TODO 标准化
         List<Integer> standardLine = new ArrayList<>();
         standardLine.add(StandardType.BLOCKED);
         for (Coord coord : coords) {
@@ -329,7 +514,7 @@ public class ChessBoard {
                     } else if (enermyPosScore >= Score.ALIVE_THREE * 2) {
                         enermyDoubleThrees.add(coord);
                     } else {
-                        otherPositions.add(new CoordWithHeuristic(coord, Math.abs(selfPosScore - enermyPosScore)));
+                        otherPositions.add(new CoordWithHeuristic(coord, Math.max(selfPosScore, enermyPosScore)));
                     }
                 }
             }
@@ -359,10 +544,10 @@ public class ChessBoard {
         }
 
         List<Coord> result = new ArrayList<>();
-        result.addAll(selfDoubleThrees);// 己方双活三
-        result.addAll(selfBlockedFours);// 己方死四
-        result.addAll(enermyDoubleThrees);// 敌方双活三
-        result.addAll(enermyBlockedFours);// 己方死四
+        result.addAll(selfDoubleThrees);// 己方成双活三
+        result.addAll(selfBlockedFours);// 己方成死四
+        result.addAll(enermyDoubleThrees);// 堵敌方双活三
+        result.addAll(enermyBlockedFours);// 堵敌方死四
         Collections.sort(otherPositions);
         for (CoordWithHeuristic coo : otherPositions) {
             result.add(coo.coord);
@@ -402,9 +587,6 @@ public class ChessBoard {
      * @return 评估值
      */
     public int evaluate() {
-        // debug
-        //System.out.println("debug evaluate");
-
         int comScore = evaluateOneSide(COM_CHESS);
         int humScore = evaluateOneSide(HUM_CHESS);
         return comScore - humScore;
@@ -415,12 +597,9 @@ public class ChessBoard {
      * 
      * @param type 对哪一方进行评估
      * 
-     * @return 评估值
+     * @return 单方面评估值
      */
     private int evaluateOneSide(int type) {
-        // debug
-        //System.out.println("debug evaluate one side");
-
         int result = 0;
         for (int x = 0; x < BOARD_SIZE; x++) {
             for (int y = 0; y < BOARD_SIZE; y++) {
@@ -430,7 +609,9 @@ public class ChessBoard {
             }
         }
         return result;
-        //TODO 修改过的局势评估函数
+
+        // TODO 修改过的局势评估函数
+
         /*
          * int self = type; List<Integer> standardLine = null; List<List<Integer>>
          * standardLines = new ArrayList<>(); List<List<Coord>> coordLines = allLines();
@@ -450,7 +631,10 @@ public class ChessBoard {
      * 在(x,y)被落子后，落子的那一方是否赢了
      */
     public boolean isWin(int x, int y) {
-        //TODO
+        // 如果没有邻居，不可能有人赢
+        if (!neighborMatrix[x][y]) {
+            return false;
+        }
         List<Coord> coordList = lineCoords(x, y, Direction.VERTICAL);
         List<Integer> standardLine = standardizeLine(coordList, boardMatrix[x][y]);
         if (ScoreCalculator.scoreFive(standardLine) > 0) {
@@ -510,10 +694,10 @@ public class ChessBoard {
             for (int y = 0; y < BOARD_SIZE; y++) {
                 if (boardMatrix[x][y] == EMPTY_CHESS) {
                     // str.append(" ");
-                    str.append("＋");//□
+                    str.append("＋");// □
                 } else if (boardMatrix[x][y] == COM_CHESS) {
                     // str.append("O ");
-                    str.append("〇");//○
+                    str.append("〇");// ○
                 } else {
                     // str.append("X ");
                     str.append("●");
@@ -527,7 +711,7 @@ public class ChessBoard {
     /**
      * 棋盘上棋子的总数
      */
-    public int getNumber(){
+    public int getNumber() {
         return chessNum;
     }
 
@@ -538,7 +722,7 @@ public class ChessBoard {
      * 
      * @retrun 所有的直线的坐标
      */
-    private static List<List<Coord>> allLines() {
+    /*private static List<List<Coord>> allLines() {
         List<Coord> line = null;// 直线坐标
         List<List<Coord>> lines = new ArrayList<>();// 装着所有的直线
         // 水平直线
@@ -598,7 +782,7 @@ public class ChessBoard {
             }
         }
         return lines;
-    }
+    }*/
 
     /**
      * @return (x,y)是否越界
@@ -612,20 +796,20 @@ public class ChessBoard {
      */
     private static List<Coord> lineCoords(int x, int y, int direction) {
         List<Coord> coords = new ArrayList<>();
-        if (direction == Direction.VERTICAL) {//竖直方向
+        if (direction == Direction.VERTICAL) {// 竖直方向
             for (int i = x - 4; i <= x + 4; i++) {
                 coords.add(new Coord(i, y));
             }
-        } else if (direction == Direction.HORIZONTAL) {//水平方向
+        } else if (direction == Direction.HORIZONTAL) {// 水平方向
             for (int j = y - 4; j <= y + 4; j++) {
                 coords.add(new Coord(x, j));
             }
-        } else if (direction == Direction.DIAGONAL) {//对角线
+        } else if (direction == Direction.DIAGONAL) {// 对角线
             int i = x - 4, j = y - 4;
             for (int k = 0; k <= 8; k++) {
                 coords.add(new Coord(i + k, j + k));
             }
-        } else {//反对角线
+        } else {// 反对角线
             int i = x + 4, j = y - 4;
             for (int k = 0; k <= 8; k++) {
                 coords.add(new Coord(i - k, j + k));

@@ -5,9 +5,9 @@ package MyChess;
  */
 public class Coord {
 
-    /**行号 */
+    /** 行号 */
     public int x;
-    /**列号 */
+    /** 列号 */
     public int y;
 
     public Coord() {
@@ -22,5 +22,10 @@ public class Coord {
     public Coord(int x, int y) {
         this.x = x;
         this.y = y;
+    }
+
+    @Override
+    public String toString() {
+        return "(" + x + ", " + y + ")";
     }
 }

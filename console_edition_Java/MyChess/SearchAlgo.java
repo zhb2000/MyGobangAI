@@ -15,23 +15,25 @@ public class SearchAlgo {
 
     public static int dfs(ChessBoard board, int fatherF, int floorType, int putX, int putY, int putType, int depth,
             int maxd) {
+        boolean[][] oldNeighbor = board.backupNeighbor(putX, putY);
+        int[][][][] oldHeuristic = board.backupHeuristic(putX, putY);
         board.put(putX, putY, putType);
 
         if (board.isWin(putX, putY)) {
             if (putType == COM_CHESS) {
-                board.undo(putX, putY);
+                board.undo(putX, putY, oldNeighbor, oldHeuristic);
                 return Score.INF;
             } else {
-                board.undo(putX, putY);
+                board.undo(putX, putY, oldNeighbor, oldHeuristic);
                 return -Score.INF;
             }
         }
         if (board.isFull()) {
-            board.undo(putX, putY);
+            board.undo(putX, putY, oldNeighbor, oldHeuristic);
             return board.evaluate();
         }
         if (depth == maxd) {
-            board.undo(putX, putY);
+            board.undo(putX, putY, oldNeighbor, oldHeuristic);
             return board.evaluate();
         }
 
@@ -48,11 +50,11 @@ public class SearchAlgo {
                     f = childF;
                 }
                 if (f > fatherF) {
-                    board.undo(putX, putY);
+                    board.undo(putX, putY, oldNeighbor, oldHeuristic);
                     return f;
                 }
             }
-            board.undo(putX, putY);
+            board.undo(putX, putY, oldNeighbor, oldHeuristic);
             return f;
         } else {
             int f = Score.INF;
@@ -67,18 +69,24 @@ public class SearchAlgo {
                     f = childF;
                 }
                 if (f < fatherF) {
-                    board.undo(putX, putY);
+                    board.undo(putX, putY, oldNeighbor, oldHeuristic);
                     return f;
                 }
             }
-            board.undo(putX, putY);
+            board.undo(putX, putY, oldNeighbor, oldHeuristic);
             return f;
         }
     }
 
+    /**
+     * 获取电脑一方的最佳落子位置
+     * 
+     * @param board 当前棋盘
+     * @return 电脑应该落子的坐标
+     */
     public static Coord getBestPut(ChessBoard board) {
         int f = -Score.INF - 1;
-        Coord bestPut = new Coord(0, 0);
+        Coord bestPut = new Coord(7, 7);
         List<Coord> emptyPosList = board.generator(COM_CHESS);
         int cnt = 0;
         int maxd;
