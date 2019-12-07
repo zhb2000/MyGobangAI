@@ -155,7 +155,7 @@ public class ScoreCalculator1 {
             if (j == plen) {
                 cnt++;
                 j = 0;
-                // TODO 重叠匹配
+                //重叠匹配
                 // i = i - plen + 1;
                 // 可以部分重叠
                 continue;

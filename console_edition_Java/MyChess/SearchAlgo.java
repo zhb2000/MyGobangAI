@@ -2,6 +2,8 @@ package MyChess;
 
 import static MyChess.ChessType.*;
 import MyChess.Config;
+import MyChess.TransTable;
+import MyChess.TableCell;
 
 import java.util.List;
 
@@ -29,28 +31,36 @@ public class SearchAlgo {
     public static int dfs(ChessBoard board, int fatherF, int floorType, int putX, int putY, int putType, int depth) {
         Status.nodeNum++;
         Status.goMaxDepth = Math.max(depth, Status.goMaxDepth);
+
         // 备份
-        boolean[][] oldNeighbor = board.backupNeighbor(putX, putY);
+        // boolean[][] oldNeighbor = board.backupNeighbor(putX, putY);
         int[][][][] oldHeuristic = board.backupHeuristic(putX, putY);
+
         board.put(putX, putY, putType);// 落子
 
         // 判断是否一方已赢
         if (board.isWin(putX, putY)) {
             if (putType == COM_CHESS) {
-                board.undo(putX, putY, oldNeighbor, oldHeuristic);
+                board.undo(putX, putY, oldHeuristic);
                 return Score.INF;
             } else {
-                board.undo(putX, putY, oldNeighbor, oldHeuristic);
+                board.undo(putX, putY, oldHeuristic);
                 return -Score.INF;
             }
         }
+        int evaluateType;
+        if (floorType == MAX_FLOOR) {
+            evaluateType = COM_CHESS;
+        } else {
+            evaluateType = HUM_CHESS;
+        }
         if (board.isFull()) {
-            board.undo(putX, putY, oldNeighbor, oldHeuristic);
-            return board.evaluate();
+            board.undo(putX, putY, oldHeuristic);
+            return board.evaluate(evaluateType);
         }
         if (depth == Config.MAX_DEPTH) {
-            board.undo(putX, putY, oldNeighbor, oldHeuristic);
-            return board.evaluate();
+            board.undo(putX, putY, oldHeuristic);
+            return board.evaluate(evaluateType);
         }
 
         if (depth == Config.START_KILLER) {
@@ -63,20 +73,48 @@ public class SearchAlgo {
             } else {
                 emptyPosList = board.generator(COM_CHESS);
             }
+
             int f = -Score.INF;
+
+            long boardHashCode = board.getCode();
+            TableCell cell = TransTable.get(boardHashCode);
+            if (cell.isValid && cell.chessNum == board.getNumber() && cell.fType != TableCell.INVALID_F
+                    && cell.treeDepth >= Config.MAX_DEPTH - depth) {
+                if (cell.fType == TableCell.EXACT_F) {
+                    f = cell.fValue;
+                    board.undo(putX, putY, oldHeuristic);
+                    if (depth == Config.START_KILLER) {
+                        Status.killerMode = false;// 关闭算杀模式
+                    }
+                    return f;
+                } else if (cell.fType == TableCell.MIN_F) {
+                    f = cell.fValue;
+                }
+            }
             for (int i = 0, cnt = 0; i < emptyPosList.size() && cnt <= Config.MAX_EMPTY_NUM; i++, cnt++) {
                 Coord coord = emptyPosList.get(i);
                 int x = coord.x;// 空位的x坐标
                 int y = coord.y;// 空位的y坐标
                 int childF = dfs(board, f, MIN_FLOOR, x, y, COM_CHESS, depth + 1);
-                if (childF > f) {
+                if (childF > f) {// 更新f值，即alpha往大走
                     f = childF;
                 }
-                if (f > fatherF) {
-                    board.undo(putX, putY, oldNeighbor, oldHeuristic);
+                if (f > fatherF) {// beta剪枝
+
+                    if (!cell.isValid || cell.treeDepth < Config.MAX_DEPTH - depth) {
+                        cell.isValid = true;
+                        cell.chessNum = board.getNumber();
+                        cell.fType = TableCell.MIN_F;
+                        cell.treeDepth = Config.MAX_DEPTH - depth;
+                        cell.fValue = f;
+                    }
+
+                    board.undo(putX, putY, oldHeuristic);
+
                     if (depth == Config.START_KILLER) {
                         Status.killerMode = false;// 关闭算杀模式
                     }
+
                     return f;
                 }
                 if (System.currentTimeMillis() - Status.startTime > Config.MAX_TIME) {
@@ -84,10 +122,25 @@ public class SearchAlgo {
                     break;
                 }
             }
-            board.undo(putX, putY, oldNeighbor, oldHeuristic);
+
+            if (!cell.isValid || cell.treeDepth < Config.MAX_DEPTH - depth) {
+                cell.isValid = true;
+                cell.chessNum = board.getNumber();
+                cell.treeDepth = Config.MAX_DEPTH - depth;
+                if (Status.isOutTime) {
+                    cell.fType = TableCell.MIN_F;
+                } else {
+                    cell.fType = TableCell.EXACT_F;
+                }
+                cell.fValue = f;
+            }
+
+            board.undo(putX, putY, oldHeuristic);
+
             if (depth == Config.START_KILLER) {
                 Status.killerMode = false;// 关闭算杀模式
             }
+
             return f;
         } else {
             List<Coord> emptyPosList;
@@ -96,7 +149,26 @@ public class SearchAlgo {
             } else {
                 emptyPosList = board.generator(HUM_CHESS);
             }
+
             int f = Score.INF;
+
+            long boardHashCode = board.getCode();
+            TableCell cell = TransTable.get(boardHashCode);
+            cell = TransTable.get(boardHashCode);
+            if (cell.isValid && cell.chessNum == board.getNumber() && cell.fType != TableCell.INVALID_F
+                    && cell.treeDepth >= Config.MAX_DEPTH - depth) {
+                if (cell.fType == TableCell.EXACT_F) {
+                    f = cell.fValue;
+                    board.undo(putX, putY, oldHeuristic);
+                    if (depth == Config.START_KILLER) {
+                        Status.killerMode = false;// 关闭算杀模式
+                    }
+                    return f;
+                } else if (cell.fType == TableCell.MAX_F) {
+                    f = cell.fValue;
+                }
+            }
+
             for (int i = 0, cnt = 0; i < emptyPosList.size() && cnt <= Config.MAX_EMPTY_NUM; i++, cnt++) {
                 Coord coord = emptyPosList.get(i);
                 int x = coord.x;// 空位的x坐标
@@ -106,10 +178,21 @@ public class SearchAlgo {
                     f = childF;
                 }
                 if (f < fatherF) {
-                    board.undo(putX, putY, oldNeighbor, oldHeuristic);
+
+                    if (!cell.isValid || cell.treeDepth < Config.MAX_DEPTH - depth) {
+                        cell.isValid = true;
+                        cell.chessNum = board.getNumber();
+                        cell.fType = TableCell.MAX_F;
+                        cell.treeDepth = Config.MAX_DEPTH - depth;
+                        cell.fValue = f;
+                    }
+
+                    board.undo(putX, putY, oldHeuristic);
+
                     if (depth == Config.START_KILLER) {
                         Status.killerMode = false;// 关闭算杀模式
                     }
+
                     return f;
                 }
                 if (System.currentTimeMillis() - Status.startTime > Config.MAX_TIME) {
@@ -117,10 +200,25 @@ public class SearchAlgo {
                     break;
                 }
             }
-            board.undo(putX, putY, oldNeighbor, oldHeuristic);
+
+            if (!cell.isValid || cell.treeDepth < Config.MAX_DEPTH - depth) {
+                cell.isValid = true;
+                cell.chessNum = board.getNumber();
+                cell.treeDepth = Config.MAX_DEPTH - depth;
+                if (Status.isOutTime) {
+                    cell.fType = TableCell.MAX_F;
+                } else {
+                    cell.fType = TableCell.EXACT_F;
+                }
+                cell.fValue = f;
+            }
+
+            board.undo(putX, putY, oldHeuristic);
+
             if (depth == Config.START_KILLER) {
                 Status.killerMode = false;// 关闭算杀模式
             }
+
             return f;
         }
     }
@@ -156,7 +254,7 @@ public class SearchAlgo {
         System.out.println("考察结点个数：" + Status.nodeNum);
         System.out.println("用时：" + (System.currentTimeMillis() - Status.startTime) / 1000.0 + "秒");
         System.out.println("超时：" + Status.isOutTime);
-        System.out.println("分数：" + f);
+        System.out.println("倒推f值：" + f);
         return bestPut;
     }
 }

@@ -22,23 +22,37 @@ public class ScoreCalculator {
      */
     public static int scoreLine(List<Integer> line) {
         calcuArray(line);
-        if (hasFive(line)) {
-            return Score.FIVE;
-        } else if (hasAliveFour(line)) {
-            return Score.ALIVE_FOUR;
-        } else if (hasBlockedFour(line)) {
-            return Score.BLOCKED_FOUR;
-        } else if (hasAliveThree(line)) {
-            return Score.ALIVE_THREE;
-        } else if (hasBlockedThree(line)) {
-            return Score.BLOCKED_THREE;
-        } else if (hasAliveTwo(line)) {
-            return Score.ALIVE_TWO;
-        } else if (hasBlockedTwo(line)) {
-            return Score.BLOCKED_TWO;
-        } else {
-            return 0;
+        int sum = 0;
+        int fiveScore = fiveNum(line) * Score.FIVE;
+        sum += fiveScore;
+        if (fiveScore > 0) {
+            return sum;
         }
+        int aliveFourScore = aliveFourNum(line) * Score.ALIVE_FOUR;
+        sum += aliveFourScore;
+        if (aliveFourScore == 0) {
+            sum += blockedFourNum(line) * Score.BLOCKED_FOUR;
+        }
+        int aliveThreeScore = aliveThreeNum(line) * Score.ALIVE_THREE;
+        sum += aliveThreeScore;
+        if (aliveThreeScore == 0) {
+            sum += blockedThreeNum(line) * Score.BLOCKED_THREE;
+        }
+        int aliveTwoScore = aliveTwoNum(line) * Score.ALIVE_TWO;
+        sum += aliveTwoScore;
+        if (aliveTwoScore == 0) {
+            sum += blockedTwoNum(line) * Score.BLOCKED_TWO;
+        }
+        return sum;
+        /*
+         * if (hasFive(line)) { return Score.FIVE; } else if (hasAliveFour(line)) {
+         * return Score.ALIVE_FOUR; } else if (hasBlockedFour(line)) { return
+         * Score.BLOCKED_FOUR; } else if (hasAliveThree(line)) { return
+         * Score.ALIVE_THREE; } else if (hasBlockedThree(line)) { return
+         * Score.BLOCKED_THREE; } else if (hasAliveTwo(line)) { return Score.ALIVE_TWO;
+         * } else if (hasBlockedTwo(line)) { return Score.BLOCKED_TWO; } else { return
+         * 0; }
+         */
     }
 
     /**
@@ -109,6 +123,18 @@ public class ScoreCalculator {
         return false;
     }
 
+    private static int fiveNum(List<Integer> line) {
+        int num = 0;
+        int left, right;
+        for (left = 0; left + 5 - 1 < line.size(); left++) {
+            right = left + 5 - 1;
+            if (cnt(left, right, SELF) == 5) {
+                num++;
+            }
+        }
+        return num;
+    }
+
     /** 是否有活四出现 */
     private static boolean hasAliveFour(List<Integer> line) {
         // 6个一组，两头0，4个1，2个0
@@ -123,6 +149,20 @@ public class ScoreCalculator {
         return false;
     }
 
+    private static int aliveFourNum(List<Integer> line) {
+        int num = 0;
+        // 6个一组，两头0，4个1，2个0
+        int left, right;
+        for (left = 0; left + 6 - 1 < line.size(); left++) {
+            right = left + 6 - 1;
+            if (line.get(left) == 0 && line.get(right) == 0 && cnt(left, right, SELF) == 4
+                    && cnt(left, right, EMPTY) == 2) {
+                num++;
+            }
+        }
+        return num;
+    }
+
     /** 是否有死四出现 */
     private static boolean hasBlockedFour(List<Integer> line) {
         // 5个一组，4个1，1个0
@@ -134,6 +174,19 @@ public class ScoreCalculator {
             }
         }
         return false;
+    }
+
+    private static int blockedFourNum(List<Integer> line) {
+        int num = 0;
+        // 5个一组，4个1，1个0
+        int left, right;
+        for (left = 0; left + 5 - 1 < line.size(); left++) {
+            right = left + 5 - 1;
+            if (cnt(left, right, SELF) == 4 && cnt(left, right, EMPTY) == 1) {
+                num++;
+            }
+        }
+        return num;
     }
 
     /** 是否有活三出现 */
@@ -150,6 +203,20 @@ public class ScoreCalculator {
         return false;
     }
 
+    private static int aliveThreeNum(List<Integer> line) {
+        int num = 0;
+        // 6个一组，两头0，3个1，3个0
+        int left, right;
+        for (left = 0; left + 6 - 1 < line.size(); left++) {
+            right = left + 6 - 1;
+            if (line.get(left) == 0 && line.get(right) == 0 && cnt(left, right, SELF) == 3
+                    && cnt(left, right, EMPTY) == 3) {
+                num++;
+            }
+        }
+        return num;
+    }
+
     /** 是否有死三出现 */
     private static boolean hasBlockedThree(List<Integer> line) {
         // 5个1组，3个1，2个0
@@ -161,6 +228,19 @@ public class ScoreCalculator {
             }
         }
         return false;
+    }
+
+    private static int blockedThreeNum(List<Integer> line) {
+        int num = 0;
+        // 5个1组，3个1，2个0
+        int left, right;
+        for (left = 0; left + 5 - 1 < line.size(); left++) {
+            right = left + 5 - 1;
+            if (cnt(left, right, SELF) == 3 && cnt(left, right, EMPTY) == 2) {
+                num++;
+            }
+        }
+        return num;
     }
 
     /** 是否有活二出现 */
@@ -177,6 +257,20 @@ public class ScoreCalculator {
         return false;
     }
 
+    private static int aliveTwoNum(List<Integer> line) {
+        int num = 0;
+        // 6个一组，两头0，2个1，4个0
+        int left, right;
+        for (left = 0; left + 6 - 1 < line.size(); left++) {
+            right = left + 6 - 1;
+            if (line.get(left) == 0 && line.get(right) == 0 && cnt(left, right, SELF) == 2
+                    && cnt(left, right, EMPTY) == 4) {
+                num++;
+            }
+        }
+        return num;
+    }
+
     /** 是否有死二出现 */
     private static boolean hasBlockedTwo(List<Integer> line) {
         // 5个一组，2个1，3个0
@@ -188,6 +282,19 @@ public class ScoreCalculator {
             }
         }
         return false;
+    }
+
+    private static int blockedTwoNum(List<Integer> line) {
+        int num = 0;
+        // 5个一组，2个1，3个0
+        int left, right;
+        for (left = 0; left + 5 - 1 < line.size(); left++) {
+            right = left + 5 - 1;
+            if (cnt(left, right, SELF) == 2 && cnt(left, right, EMPTY) == 3) {
+                num++;
+            }
+        }
+        return num;
     }
 
 }

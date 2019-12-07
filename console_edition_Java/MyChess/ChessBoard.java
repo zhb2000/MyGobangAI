@@ -2,6 +2,7 @@ package MyChess;
 
 import static MyChess.ChessType.*;
 import static MyChess.Config.BOARD_SIZE;
+import MyChess.Zobrist;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,9 +16,17 @@ public class ChessBoard {
     /** 电脑的空位启发式函数值 */
     private int[][][] comHeuristic;
     /** 空位附近是否有棋子（不管什么类型） */
-    private boolean[][] neighborMatrix;
+    // private boolean[][] neighborMatrix;
     /** 棋子总数 */
     private int chessNum;
+    /** 位置附近棋子的总数 */
+    private int[][] neighborNum;
+    /** 位置近邻人类棋子数量 */
+    private int[][] humCloseNeighbor;
+    /** 位置近邻电脑棋子数量 */
+    private int[][] comCloseNeighbor;
+    /** Zobrist对象 */
+    private Zobrist zobrist;
 
     /** 构造函数 */
     public ChessBoard() {
@@ -30,7 +39,10 @@ public class ChessBoard {
         }
         humHeuristic = new int[BOARD_SIZE][BOARD_SIZE][4];
         comHeuristic = new int[BOARD_SIZE][BOARD_SIZE][4];
-        neighborMatrix = new boolean[BOARD_SIZE][BOARD_SIZE];
+        neighborNum = new int[BOARD_SIZE][BOARD_SIZE];
+        humCloseNeighbor = new int[BOARD_SIZE][BOARD_SIZE];
+        comCloseNeighbor = new int[BOARD_SIZE][BOARD_SIZE];
+        zobrist = new Zobrist();
     }
 
     /**
@@ -51,31 +63,39 @@ public class ChessBoard {
         }
         boardMatrix[x][y] = type;
         chessNum++;// 更新棋子总数
-        updateNeighborAfterDo(x, y);// 更新邻居矩阵
+        updateNeighborAfterDo(x, y, EMPTY_CHESS);// 更新邻居矩阵
         updateHeuristicAfterDo(x, y);// 更新启发函数矩阵
+        zobrist.goUpdate(x, y, type);// 更新哈希值
         return true;
     }
 
     /**
      * 撤销棋子并更新相应的数据
      * 
-     * @param x 落子的行号
-     * @param y 落子的列号
+     * @param x            落子的行号
+     * @param y            落子的列号
+     * @param oldHeuristic [hum[][][], com[][][]]
      * 
      * @return 操作是否合法
      */
-    public boolean undo(int x, int y, boolean[][] oldNeighbor, int[][][][] oldHeuristic) {
+    public boolean undo(int x, int y, int[][][][] oldHeuristic) {
         if (outOfBound(x, y)) {
             return false;
         }
         if (boardMatrix[x][y] == EMPTY_CHESS) {
             return false;
         }
+        int oldType = boardMatrix[x][y];// 撤销前原来的棋子类型
         boardMatrix[x][y] = EMPTY_CHESS;
         chessNum--;// 更新棋子总数
-        restoreNeighbor(x, y, oldNeighbor);
-        restoreHeuristic(x, y, oldHeuristic[0], oldHeuristic[1]);
+        updateNeighborAfterDo(x, y, oldType);// 更新邻居矩阵
+        restoreHeuristic(x, y, oldHeuristic[0], oldHeuristic[1]);// 更新启发函数矩阵
+        zobrist.goUpdate(x, y, oldType);
         return true;
+    }
+
+    public long getCode() {
+        return zobrist.code();
     }
 
     /**
@@ -88,82 +108,141 @@ public class ChessBoard {
     }
 
     /**
-     * 备份hasNeighbor矩阵
+     * (x,y)两格内是否有邻居，无论什么类型
      * 
-     * @param x 落子的行号
-     * @param y 落子的列号
-     * @return 5*5数组
+     * @param x 行号
+     * @param y 列号
+     * @return 两格内是否有邻居
      */
-    public boolean[][] backupNeighbor(int x, int y) {
-        boolean[][] oldNeighbor = new boolean[BOARD_SIZE][BOARD_SIZE];
-        for (int i = x - 2; i <= x + 2; i++) {
-            for (int j = y - 2; j <= y + 2; j++) {
-                if (!outOfBound(i, j)) {
-                    oldNeighbor[i][j] = neighborMatrix[i][j];
-                }
-            }
-        }
-        return oldNeighbor;
+    private boolean hasNeighbor(int x, int y) {
+        return neighborNum[x][y] > 0;
     }
 
-    private void restoreNeighbor(int x, int y, boolean[][] oldNeighbor) {
-        for (int i = x - 2; i <= x + 2; i++) {
-            for (int j = y - 2; j <= y + 2; j++) {
-                if (!outOfBound(i, j)) {
-                    neighborMatrix[i][j] = oldNeighbor[i][j];
-                }
-            }
-        }
-    }
+    // /**
+    // * 备份hasNeighbor矩阵
+    // *
+    // * @param x 落子的行号
+    // * @param y 落子的列号
+    // * @return 5*5数组
+    // */
+    // public boolean[][] backupNeighbor(int x, int y) {
+    // boolean[][] oldNeighbor = new boolean[BOARD_SIZE][BOARD_SIZE];
+    // for (int i = x - 2; i <= x + 2; i++) {
+    // for (int j = y - 2; j <= y + 2; j++) {
+    // if (!outOfBound(i, j)) {
+    // oldNeighbor[i][j] = neighborMatrix[i][j];
+    // }
+    // }
+    // }
+    // return oldNeighbor;
+    // }
+
+    // private void restoreNeighbor(int x, int y, boolean[][] oldNeighbor) {
+    // for (int i = x - 2; i <= x + 2; i++) {
+    // for (int j = y - 2; j <= y + 2; j++) {
+    // if (!outOfBound(i, j)) {
+    // neighborMatrix[i][j] = oldNeighbor[i][j];
+    // }
+    // }
+    // }
+    // }
+
+    // /**
+    // * 对(x,y)位置落子或撤销后，更新邻居矩阵
+    // *
+    // * @param x 落子位置或撤销位置的行号
+    // * @param y 落子位置或撤销位置的列号
+    // */
+    // private void updateNeighborAfterDo(int x, int y) {
+    // if (boardMatrix[x][y] != EMPTY_CHESS) {
+    // // 在(x,y)位置落子，直接把周围的空位修改成有邻居即可
+    // for (int i = x - 2; i <= x + 2; i++) {
+    // for (int j = y - 2; j <= y + 2; j++) {
+    // // 没有越界且是个空位
+    // if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
+    // neighborMatrix[i][j] = true;
+    // }
+    // }
+    // }
+    // } else {
+    // // 在(x,y)位置撤销棋子，周围空位的邻居情况需要具体计算
+    // for (int i = x - 2; i <= x + 2; i++) {
+    // for (int j = y - 2; j <= y + 2; j++) {
+    // // 没有越界且是个空位
+    // if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
+    // calcuNeighbor(i, j);
+    // }
+    // }
+    // }
+    // }
+    // }
 
     /**
      * 对(x,y)位置落子或撤销后，更新邻居矩阵
      * 
-     * @param x 落子位置或撤销位置的行号
-     * @param y 落子位置或撤销位置的列号
+     * @param x       落子位置或撤销位置的行号
+     * @param y       落子位置或撤销位置的列号
+     * @param oldType 操作前(x,y)的棋子类型
      */
-    private void updateNeighborAfterDo(int x, int y) {
-        if (boardMatrix[x][y] != EMPTY_CHESS) {
-            // 在(x,y)位置落子，直接把周围的空位修改成有邻居即可
-            for (int i = x - 2; i <= x + 2; i++) {
-                for (int j = y - 2; j <= y + 2; j++) {
-                    // 没有越界且是个空位
-                    if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
-                        neighborMatrix[i][j] = true;
+    private void updateNeighborAfterDo(int x, int y, int oldType) {
+        // 更新neighborNum矩阵
+        for (int i = x - 2; i <= x + 2; i++) {
+            for (int j = y - 2; j <= y + 2; j++) {
+                if (!outOfBound(i, j) && i != x && j != y) {
+                    if (oldType == EMPTY_CHESS) {
+                        // 在(x,y)落子，周围邻居数量加1
+                        neighborNum[i][j]++;
+                    } else {
+                        //// 在(x,y)落子，周围邻居数量减1
+                        neighborNum[i][j]--;
                     }
                 }
             }
-        } else {
-            // 在(x,y)位置撤销棋子，周围空位的邻居情况需要具体计算
-            for (int i = x - 2; i <= x + 2; i++) {
-                for (int j = y - 2; j <= y + 2; j++) {
-                    // 没有越界且是个空位
-                    if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
-                        calcuNeighbor(i, j);
+        }
+        for (int i = x - 1; i <= x + 1; i++) {
+            for (int j = y - 1; j <= y + 1; j++) {
+                if (!outOfBound(i, j) && i != x && j != y) {
+                    // 在(x,y)落子
+                    if (oldType == EMPTY_CHESS) {
+                        if (boardMatrix[x][y] == HUM_CHESS) {
+                            // (x,y)现在是人类棋子
+                            humCloseNeighbor[i][j]++;
+                        } else {
+                            // (x,y)现在是电脑棋子
+                            comCloseNeighbor[i][j]++;
+                        }
+                    } else {// 在(x,y)撤销了一个棋子
+                        if (oldType == HUM_CHESS) {
+                            // (x,y)原来是人类棋子
+                            humCloseNeighbor[i][j]--;
+                        } else {
+                            // (x,y)原来是电脑棋子
+                            comCloseNeighbor[i][j]--;
+                        }
                     }
                 }
             }
         }
     }
 
-    /**
-     * 计算(x,y)附近是否有棋子，并修改邻居矩阵中相应的位置
-     * 
-     * @param x 中心位置的行号
-     * @param y 中心位置的列号
-     */
-    private void calcuNeighbor(int x, int y) {
-        boolean hasNeighbor = false;
-        for (int i = x - 2; i <= x + 2; i++) {
-            for (int j = y - 2; j <= y + 2; j++) {
-                if (!outOfBound(i, j) && boardMatrix[i][j] != EMPTY_CHESS) {
-                    hasNeighbor = true;// 没有越界且有棋子占据
-                    break;
-                }
-            }
-        }
-        neighborMatrix[x][y] = hasNeighbor;
-    }
+    // /**
+    // * 计算(x,y)附近是否有棋子，并修改邻居矩阵中相应的位置
+    // *
+    // * @param x 中心位置的行号
+    // * @param y 中心位置的列号
+    // */
+    // private void calcuNeighbor(int x, int y) {
+    // boolean hasNeighbor = false;
+    // for (int i = x - 2; i <= x + 2; i++) {
+    // for (int j = y - 2; j <= y + 2; j++) {
+    // if (!outOfBound(i, j) && boardMatrix[i][j] != EMPTY_CHESS) {
+    // hasNeighbor = true;// 没有越界且有棋子占据
+    // break;
+    // }
+    // }
+    // }
+    // neighborMatrix[x][y] = hasNeighbor;
+    // }
 
     /** [hum[][][], com[][][]] */
     public int[][][][] backupHeuristic(int x, int y) {
@@ -422,14 +501,18 @@ public class ChessBoard {
      * @return 该空格对于该方的启发函数值
      */
     private int heuristic(int x, int y, int type) {
+        // TODO 已修改启发函数，加入近邻奖励
         if (type == COM_CHESS) {
             // 电脑方的棋子要下到(x,y)位置的空格上
-            // 把该空格位置四个方向的启发函数值加起来返回
-            return comHeuristic[x][y][Direction.VERTICAL] + comHeuristic[x][y][Direction.HORIZONTAL]
+            // 把该空格位置四个方向的启发函数值加起来
+            int value = comHeuristic[x][y][Direction.VERTICAL] + comHeuristic[x][y][Direction.HORIZONTAL]
                     + comHeuristic[x][y][Direction.DIAGONAL] + comHeuristic[x][y][Direction.ANTIDIAGONAL];
+            // 每一个己方近邻额外多加10%的分
+            return (int) (value * (1 + comCloseNeighbor[x][y] * Config.CLOSE_RADIUS));
         } else {
-            return humHeuristic[x][y][Direction.VERTICAL] + humHeuristic[x][y][Direction.HORIZONTAL]
+            int value = humHeuristic[x][y][Direction.VERTICAL] + humHeuristic[x][y][Direction.HORIZONTAL]
                     + humHeuristic[x][y][Direction.DIAGONAL] + humHeuristic[x][y][Direction.ANTIDIAGONAL];
+            return (int) (value * (1 + humCloseNeighbor[x][y] * Config.CLOSE_RADIUS));
         }
     }
 
@@ -456,23 +539,23 @@ public class ChessBoard {
         // 敌方放在该空位能活四
         List<Coord> enermyAliveFours = new ArrayList<>();
         // 己方放在该空位能死四
-        List<Coord> selfBlockedFours = new ArrayList<>();
+        List<CoordWithHeuristic> selfBlockedFours = new ArrayList<>();
         // 敌方放在该空位能死四
-        List<Coord> enermyBlockedFours = new ArrayList<>();
+        List<CoordWithHeuristic> enermyBlockedFours = new ArrayList<>();
         // 己方放在该空位能双活三
-        List<Coord> selfDoubleThrees = new ArrayList<>();
+        List<CoordWithHeuristic> selfDoubleThrees = new ArrayList<>();
         // 敌方放在该空位能双活三
-        List<Coord> enermyDoubleThrees = new ArrayList<>();
+        List<CoordWithHeuristic> enermyDoubleThrees = new ArrayList<>();
         // 其他
         List<CoordWithHeuristic> otherPositions = new ArrayList<>();
 
         for (int x = 0; x < BOARD_SIZE; x++) {
             for (int y = 0; y < BOARD_SIZE; y++) {
                 // 这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
-                if (boardMatrix[x][y] == EMPTY_CHESS && neighborMatrix[x][y]) {
-                    Coord coord = new Coord(x, y);
-                    int selfPosScore = heuristic(x, y, self);
-                    int enermyPosScore = heuristic(x, y, enermy);
+                if (boardMatrix[x][y] == EMPTY_CHESS && hasNeighbor(x, y)) {
+                    Coord coord = new Coord(x, y);// 空位坐标
+                    int selfPosScore = heuristic(x, y, self);// 己方空位得分
+                    int enermyPosScore = heuristic(x, y, enermy);// 地方空位得分
                     if (selfPosScore >= Score.FIVE || enermyPosScore >= Score.FIVE) {
                         fives.add(coord);
                     } else if (selfPosScore >= Score.ALIVE_FOUR) {
@@ -480,13 +563,13 @@ public class ChessBoard {
                     } else if (enermyPosScore >= Score.ALIVE_FOUR) {
                         enermyAliveFours.add(coord);
                     } else if (selfPosScore >= Score.BLOCKED_FOUR) {
-                        selfBlockedFours.add(coord);
+                        selfBlockedFours.add(new CoordWithHeuristic(coord, selfPosScore));
                     } else if (enermyPosScore >= Score.BLOCKED_FOUR) {
-                        enermyBlockedFours.add(coord);
+                        enermyBlockedFours.add(new CoordWithHeuristic(coord, enermyPosScore));
                     } else if (selfPosScore >= Score.ALIVE_THREE * 2) {
-                        selfDoubleThrees.add(coord);
+                        selfDoubleThrees.add(new CoordWithHeuristic(coord, selfPosScore));
                     } else if (enermyPosScore >= Score.ALIVE_THREE * 2) {
-                        enermyDoubleThrees.add(coord);
+                        enermyDoubleThrees.add(new CoordWithHeuristic(coord, selfPosScore));
                     } else {
                         otherPositions.add(new CoordWithHeuristic(coord, Math.max(selfPosScore, enermyPosScore)));
                     }
@@ -499,19 +582,26 @@ public class ChessBoard {
         if (fives.size() > 0) {
             return fives;
         }
+
         // 己方能活四的位置，必杀，直接返回
         if (selfAliveFours.size() > 0) {
             return selfAliveFours;
         }
+
         // 敌方下一手能活四的位置
         if (enermyAliveFours.size() > 0) {
-            // 若己方这一手有能死四的位置
             if (selfBlockedFours.size() > 0) {
-                // 优先考虑下在己方死四的位置，以攻代守
-                // 其次考虑去堵敌方的活四，消极防守，垂死挣扎
-                selfBlockedFours.addAll(enermyAliveFours);
-                return selfBlockedFours;
+                // 若己方这一手有能死四的位置
+                // 优先考虑己方成死四，以攻代守
+                List<Coord> retArray = new ArrayList<>();
+                for (CoordWithHeuristic c : selfBlockedFours) {
+                    retArray.add(c.coord);
+                }
+                // 其次考虑去堵敌方的活四，消极防守
+                retArray.addAll(enermyAliveFours);
+                return retArray;
             } else {
+                // 己方这一手不能成死四
                 // 堵敌方的活四，消极防守
                 return enermyAliveFours;
             }
@@ -519,18 +609,36 @@ public class ChessBoard {
 
         // 己方这一手和敌方下一手都不能连五或者活四
         List<Coord> result = new ArrayList<>();
-        result.addAll(selfDoubleThrees);// 己方成双活三
-        result.addAll(selfBlockedFours);// 己方成死四
-        result.addAll(enermyDoubleThrees);// 堵敌方双活三
-        result.addAll(enermyBlockedFours);// 堵敌方死四
+        // 排序
+        Collections.sort(selfDoubleThrees);
+        Collections.sort(selfBlockedFours);
+        Collections.sort(enermyDoubleThrees);
+        Collections.sort(enermyBlockedFours);
         Collections.sort(otherPositions);
+        // 己方成双活三
+        for (CoordWithHeuristic coo : selfDoubleThrees) {
+            result.add(coo.coord);
+        }
+        // 己方成死四
+        for (CoordWithHeuristic coo : selfBlockedFours) {
+            result.add(coo.coord);
+        }
+        // 堵敌方双活三
+        for (CoordWithHeuristic coo : enermyDoubleThrees) {
+            result.add(coo.coord);
+        }
+        // 堵敌方死四
+        for (CoordWithHeuristic coo : enermyBlockedFours) {
+            result.add(coo.coord);
+        }
+        // 其他棋形
         for (CoordWithHeuristic coo : otherPositions) {
             result.add(coo.coord);
         }
         return result;
     }
 
-    /**算杀 */
+    /** 算杀 */
     public List<Coord> generatorKill(int type) {
         int self, enermy;
         if (type == COM_CHESS) {
@@ -541,26 +649,26 @@ public class ChessBoard {
             enermy = COM_CHESS;
         }
         // 己方或敌方放在该空位能连五、活四、死四、活三
-        List<CoordWithHeuristic> result = new ArrayList<>();
+        List<CoordWithHeuristic> sortArray = new ArrayList<>();
         for (int x = 0; x < BOARD_SIZE; x++) {
             for (int y = 0; y < BOARD_SIZE; y++) {
                 // 这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
-                if (boardMatrix[x][y] == EMPTY_CHESS && neighborMatrix[x][y]) {
+                if (boardMatrix[x][y] == EMPTY_CHESS && hasNeighbor(x, y)) {
                     Coord coord = new Coord(x, y);
                     int selfPosScore = heuristic(x, y, self);
                     int enermyPosScore = heuristic(x, y, enermy);
                     if (selfPosScore >= Score.ALIVE_THREE || enermyPosScore >= Score.ALIVE_THREE) {
-                        result.add(new CoordWithHeuristic(coord, Math.max(selfPosScore, enermyPosScore)));
+                        sortArray.add(new CoordWithHeuristic(coord, Math.max(selfPosScore, enermyPosScore)));
                     }
                 }
             }
         }
-        Collections.sort(result);
-        List<Coord> returnArray = new ArrayList<>();
-        for (CoordWithHeuristic c : result) {
-            returnArray.add(c.coord);
+        Collections.sort(sortArray);
+        List<Coord> result = new ArrayList<>();
+        for (CoordWithHeuristic c : sortArray) {
+            result.add(c.coord);
         }
-        return returnArray;
+        return result;
     }
 
     /**
@@ -594,10 +702,26 @@ public class ChessBoard {
      * 
      * @return 评估值
      */
-    public int evaluate() {
+    public int evaluate(int type) {
         int comScore = evaluateOneSide(COM_CHESS);
         int humScore = evaluateOneSide(HUM_CHESS);
-        return comScore - humScore;
+        if (type == COM_CHESS) {
+            if (comScore >= Score.FIVE) {
+                return Score.INF;
+            } else if (humScore >= Score.FIVE) {
+                return -Score.INF;
+            } else {
+                return comScore - humScore;
+            }
+        } else {
+            if (humScore >= Score.FIVE) {
+                return -Score.INF;
+            } else if (comScore >= Score.FIVE) {
+                return Score.INF;
+            } else {
+                return comScore - humScore;
+            }
+        }
     }
 
     /**
@@ -617,20 +741,6 @@ public class ChessBoard {
             }
         }
         return result;
-
-        /*
-         * int self = type; List<Integer> standardLine = null; List<List<Integer>>
-         * standardLines = new ArrayList<>(); List<List<Coord>> coordLines = allLines();
-         * for (List<Coord> coordLine : coordLines) { standardLine = new ArrayList<>();
-         * standardLine.add(StandardType.BLOCKED);// 首部加一个阻塞 for (Coord coord :
-         * coordLine) { int x = coord.x; int y = coord.y; if (boardMatrix[x][y] ==
-         * EMPTY_CHESS) { standardLine.add(StandardType.EMPTY); } else if
-         * (boardMatrix[x][y] == self) { standardLine.add(StandardType.SELF); } else {
-         * standardLine.add(StandardType.BLOCKED); } }
-         * standardLine.add(StandardType.BLOCKED);// 尾部加一个阻塞
-         * standardLines.add(standardLine); } return
-         * ScoreCalculator.scoreLines(standardLines);
-         */
     }
 
     /**
@@ -638,23 +748,7 @@ public class ChessBoard {
      */
     public boolean isWin(int x, int y) {
         // 因为落子之前肯定是个空格，直接看这个地方是空格时的启发函数值即可
-        return heuristic(x, y, boardMatrix[x][y]) >= Score.INF;
-
-        /*
-         * // 如果没有邻居，不可能有人赢 if (!neighborMatrix[x][y]) { return false; } List<Coord>
-         * coordList = lineCoords(x, y, Direction.VERTICAL); List<Integer> standardLine
-         * = standardizeLine(coordList, boardMatrix[x][y]); if
-         * (ScoreCalculator.scoreFive(standardLine) > 0) { return true; } coordList =
-         * lineCoords(x, y, Direction.HORIZONTAL); standardLine =
-         * standardizeLine(coordList, boardMatrix[x][y]); if
-         * (ScoreCalculator.scoreFive(standardLine) > 0) { return true; } coordList =
-         * lineCoords(x, y, Direction.DIAGONAL); standardLine =
-         * standardizeLine(coordList, boardMatrix[x][y]); if
-         * (ScoreCalculator.scoreFive(standardLine) > 0) { return true; } coordList =
-         * lineCoords(x, y, Direction.ANTIDIAGONAL); standardLine =
-         * standardizeLine(coordList, boardMatrix[x][y]); if
-         * (ScoreCalculator.scoreFive(standardLine) > 0) { return true; } return false;
-         */
+        return heuristic(x, y, boardMatrix[x][y]) >= Score.FIVE;
     }
 
     /**

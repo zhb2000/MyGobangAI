@@ -11,7 +11,9 @@ public class Config {
     /** 第几层开始算杀 */
     final public static int START_KILLER = 4;
     /** 最大搜索深度 */
-    final public static int MAX_DEPTH = 6;// debug
+    final public static int MAX_DEPTH = 7;// debug
     /** 最长搜索时间 */
-    final public static long MAX_TIME = 15 * 1000;
+    final public static long MAX_TIME = 30 * 1000;
+    /** 己方近邻系数 */
+    final public static double CLOSE_RADIUS = 0.1;
 }
