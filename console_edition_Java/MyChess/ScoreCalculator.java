@@ -22,37 +22,49 @@ public class ScoreCalculator {
      */
     public static int scoreLine(List<Integer> line) {
         calcuArray(line);
-        int sum = 0;
-        int fiveScore = fiveNum(line) * Score.FIVE;
-        sum += fiveScore;
-        if (fiveScore > 0) {
+
+        if (Config.CALCU_TYPE == 1) {
+            int sum = 0;
+            int fiveScore = fiveNum(line) * Score.FIVE;
+            sum += fiveScore;
+            if (fiveScore > 0) {
+                return sum;
+            }
+            int aliveFourScore = aliveFourNum(line) * Score.ALIVE_FOUR;
+            sum += aliveFourScore;
+            if (aliveFourScore == 0) {
+                sum += blockedFourNum(line) * Score.BLOCKED_FOUR;
+            }
+            int aliveThreeScore = aliveThreeNum(line) * Score.ALIVE_THREE;
+            sum += aliveThreeScore;
+            if (aliveThreeScore == 0) {
+                sum += blockedThreeNum(line) * Score.BLOCKED_THREE;
+            }
+            int aliveTwoScore = aliveTwoNum(line) * Score.ALIVE_TWO;
+            sum += aliveTwoScore;
+            if (aliveTwoScore == 0) {
+                sum += blockedTwoNum(line) * Score.BLOCKED_TWO;
+            }
             return sum;
+        } else {
+            if (hasFive(line)) {
+                return Score.FIVE;
+            } else if (hasAliveFour(line)) {
+                return Score.ALIVE_FOUR;
+            } else if (hasBlockedFour(line)) {
+                return Score.BLOCKED_FOUR;
+            } else if (hasAliveThree(line)) {
+                return Score.ALIVE_THREE;
+            } else if (hasBlockedThree(line)) {
+                return Score.BLOCKED_THREE;
+            } else if (hasAliveTwo(line)) {
+                return Score.ALIVE_TWO;
+            } else if (hasBlockedTwo(line)) {
+                return Score.BLOCKED_TWO;
+            } else {
+                return 0;
+            }
         }
-        int aliveFourScore = aliveFourNum(line) * Score.ALIVE_FOUR;
-        sum += aliveFourScore;
-        if (aliveFourScore == 0) {
-            sum += blockedFourNum(line) * Score.BLOCKED_FOUR;
-        }
-        int aliveThreeScore = aliveThreeNum(line) * Score.ALIVE_THREE;
-        sum += aliveThreeScore;
-        if (aliveThreeScore == 0) {
-            sum += blockedThreeNum(line) * Score.BLOCKED_THREE;
-        }
-        int aliveTwoScore = aliveTwoNum(line) * Score.ALIVE_TWO;
-        sum += aliveTwoScore;
-        if (aliveTwoScore == 0) {
-            sum += blockedTwoNum(line) * Score.BLOCKED_TWO;
-        }
-        return sum;
-        /*
-         * if (hasFive(line)) { return Score.FIVE; } else if (hasAliveFour(line)) {
-         * return Score.ALIVE_FOUR; } else if (hasBlockedFour(line)) { return
-         * Score.BLOCKED_FOUR; } else if (hasAliveThree(line)) { return
-         * Score.ALIVE_THREE; } else if (hasBlockedThree(line)) { return
-         * Score.BLOCKED_THREE; } else if (hasAliveTwo(line)) { return Score.ALIVE_TWO;
-         * } else if (hasBlockedTwo(line)) { return Score.BLOCKED_TWO; } else { return
-         * 0; }
-         */
     }
 
     /**

@@ -16,9 +16,9 @@ public class Score {
     /** 死三 */
     final public static int BLOCKED_THREE = 100;// 1e2
     /** 活二 */
-    final public static int ALIVE_TWO = 20;// 1e2 or 20
+    final public static int ALIVE_TWO = 20;// 原100
     /** 死二 */
-    final public static int BLOCKED_TWO = 2;// 1e1 or 5
+    final public static int BLOCKED_TWO = 2;// 原10
     /** 活一 */
     //final public static int ALIVE_ONE = 10;// 1e1
     /** 死一 */

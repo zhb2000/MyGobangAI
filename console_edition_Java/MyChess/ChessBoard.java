@@ -533,11 +533,11 @@ public class ChessBoard {
             enermy = COM_CHESS;
         }
         // 己方或敌方放在该空位能连五
-        List<Coord> fives = new ArrayList<>();
+        List<CoordWithHeuristic> fives = new ArrayList<>();
         // 己方放在该空位能活四
-        List<Coord> selfAliveFours = new ArrayList<>();
+        List<CoordWithHeuristic> selfAliveFours = new ArrayList<>();
         // 敌方放在该空位能活四
-        List<Coord> enermyAliveFours = new ArrayList<>();
+        List<CoordWithHeuristic> enermyAliveFours = new ArrayList<>();
         // 己方放在该空位能死四
         List<CoordWithHeuristic> selfBlockedFours = new ArrayList<>();
         // 敌方放在该空位能死四
@@ -546,6 +546,8 @@ public class ChessBoard {
         List<CoordWithHeuristic> selfDoubleThrees = new ArrayList<>();
         // 敌方放在该空位能双活三
         List<CoordWithHeuristic> enermyDoubleThrees = new ArrayList<>();
+        // 己方放在该空位能活三
+        List<CoordWithHeuristic> selfAliveThrees = new ArrayList<>();
         // 其他
         List<CoordWithHeuristic> otherPositions = new ArrayList<>();
 
@@ -557,11 +559,11 @@ public class ChessBoard {
                     int selfPosScore = heuristic(x, y, self);// 己方空位得分
                     int enermyPosScore = heuristic(x, y, enermy);// 地方空位得分
                     if (selfPosScore >= Score.FIVE || enermyPosScore >= Score.FIVE) {
-                        fives.add(coord);
+                        fives.add(new CoordWithHeuristic(coord, Score.FIVE));
                     } else if (selfPosScore >= Score.ALIVE_FOUR) {
-                        selfAliveFours.add(coord);
+                        selfAliveFours.add(new CoordWithHeuristic(coord, selfPosScore));
                     } else if (enermyPosScore >= Score.ALIVE_FOUR) {
-                        enermyAliveFours.add(coord);
+                        enermyAliveFours.add(new CoordWithHeuristic(coord, enermyPosScore));
                     } else if (selfPosScore >= Score.BLOCKED_FOUR) {
                         selfBlockedFours.add(new CoordWithHeuristic(coord, selfPosScore));
                     } else if (enermyPosScore >= Score.BLOCKED_FOUR) {
@@ -569,7 +571,9 @@ public class ChessBoard {
                     } else if (selfPosScore >= Score.ALIVE_THREE * 2) {
                         selfDoubleThrees.add(new CoordWithHeuristic(coord, selfPosScore));
                     } else if (enermyPosScore >= Score.ALIVE_THREE * 2) {
-                        enermyDoubleThrees.add(new CoordWithHeuristic(coord, selfPosScore));
+                        enermyDoubleThrees.add(new CoordWithHeuristic(coord, enermyPosScore));
+                    } else if (selfPosScore >= Score.ALIVE_THREE) {
+                        selfAliveThrees.add(new CoordWithHeuristic(coord, selfPosScore));
                     } else {
                         otherPositions.add(new CoordWithHeuristic(coord, Math.max(selfPosScore, enermyPosScore)));
                     }
@@ -577,64 +581,50 @@ public class ChessBoard {
             }
         }
 
+        List<Coord> result = new ArrayList<>();
         // 己方能连五的位置，必杀，直接返回
         // 敌方下一手能连五的位置，己方要把这里堵住，直接返回
         if (fives.size() > 0) {
-            return fives;
+            result.addAll(fives);
+            return result;
         }
 
         // 己方能活四的位置，必杀，直接返回
         if (selfAliveFours.size() > 0) {
-            return selfAliveFours;
+            result.addAll(selfAliveFours);
+            return result;
         }
 
         // 敌方下一手能活四的位置
         if (enermyAliveFours.size() > 0) {
+            Collections.sort(selfBlockedFours);
+            Collections.sort(enermyAliveFours);
             if (selfBlockedFours.size() > 0) {
-                // 若己方这一手有能死四的位置
-                // 优先考虑己方成死四，以攻代守
-                List<Coord> retArray = new ArrayList<>();
-                for (CoordWithHeuristic c : selfBlockedFours) {
-                    retArray.add(c.coord);
-                }
-                // 其次考虑去堵敌方的活四，消极防守
-                retArray.addAll(enermyAliveFours);
-                return retArray;
+                result.addAll(selfBlockedFours);// 优先考虑己方成死四，以攻代守
+                result.addAll(enermyAliveFours);// 其次考虑去堵敌方的活四，消极防守
             } else {
                 // 己方这一手不能成死四
-                // 堵敌方的活四，消极防守
-                return enermyAliveFours;
+                result.addAll(enermyAliveFours);// 堵敌方的活四，消极防守
             }
+            return result;
         }
 
         // 己方这一手和敌方下一手都不能连五或者活四
-        List<Coord> result = new ArrayList<>();
         // 排序
         Collections.sort(selfDoubleThrees);
         Collections.sort(selfBlockedFours);
         Collections.sort(enermyDoubleThrees);
         Collections.sort(enermyBlockedFours);
+        Collections.sort(selfAliveThrees);
         Collections.sort(otherPositions);
-        // 己方成双活三
-        for (CoordWithHeuristic coo : selfDoubleThrees) {
-            result.add(coo.coord);
-        }
-        // 己方成死四
-        for (CoordWithHeuristic coo : selfBlockedFours) {
-            result.add(coo.coord);
-        }
-        // 堵敌方双活三
-        for (CoordWithHeuristic coo : enermyDoubleThrees) {
-            result.add(coo.coord);
-        }
-        // 堵敌方死四
-        for (CoordWithHeuristic coo : enermyBlockedFours) {
-            result.add(coo.coord);
-        }
-        // 其他棋形
-        for (CoordWithHeuristic coo : otherPositions) {
-            result.add(coo.coord);
-        }
+
+        result.addAll(selfDoubleThrees);// 己方成双活三
+        result.addAll(enermyBlockedFours);// 己方成死四
+        result.addAll(selfAliveThrees); // 己方成活三
+        result.addAll(enermyDoubleThrees);// 堵敌方双活三
+        result.addAll(enermyBlockedFours);// 堵敌方死四
+        result.addAll(otherPositions);
+
         return result;
     }
 
@@ -648,35 +638,94 @@ public class ChessBoard {
             self = HUM_CHESS;
             enermy = COM_CHESS;
         }
-        // 己方或敌方放在该空位能连五、活四、死四、活三
-        List<CoordWithHeuristic> sortArray = new ArrayList<>();
+
+        List<CoordWithHeuristic> fives = new ArrayList<>();
+        List<CoordWithHeuristic> selfAliveFours = new ArrayList<>();
+        List<CoordWithHeuristic> enermyAliveFours = new ArrayList<>();
+        List<CoordWithHeuristic> selfBlockedFours = new ArrayList<>();
+        List<CoordWithHeuristic> enermyBlockedFours = new ArrayList<>();
+        List<CoordWithHeuristic> selfDoubleThrees = new ArrayList<>();
+        List<CoordWithHeuristic> enermyDoubleThrees = new ArrayList<>();
+        List<CoordWithHeuristic> selfAliveThrees = new ArrayList<>();
+
         for (int x = 0; x < BOARD_SIZE; x++) {
             for (int y = 0; y < BOARD_SIZE; y++) {
                 // 这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
                 if (boardMatrix[x][y] == EMPTY_CHESS && hasNeighbor(x, y)) {
-                    Coord coord = new Coord(x, y);
                     int selfPosScore = heuristic(x, y, self);
                     int enermyPosScore = heuristic(x, y, enermy);
-                    if (selfPosScore >= Score.ALIVE_THREE || enermyPosScore >= Score.ALIVE_THREE) {
-                        sortArray.add(new CoordWithHeuristic(coord, Math.max(selfPosScore, enermyPosScore)));
+                    if (selfPosScore >= Score.FIVE || enermyPosScore >= Score.FIVE) {
+                        fives.add(new CoordWithHeuristic(x, y, Score.FIVE));
+                    } else if (selfPosScore >= Score.ALIVE_FOUR) {
+                        selfAliveFours.add(new CoordWithHeuristic(x, y, selfPosScore));
+                    } else if (enermyPosScore >= Score.ALIVE_FOUR) {
+                        enermyAliveFours.add(new CoordWithHeuristic(x, y, enermyPosScore));
+                    } else if (selfPosScore >= Score.BLOCKED_FOUR) {
+                        selfBlockedFours.add(new CoordWithHeuristic(x, y, selfPosScore));
+                    } else if (enermyPosScore >= Score.BLOCKED_FOUR) {
+                        enermyBlockedFours.add(new CoordWithHeuristic(x, y, enermyPosScore));
+                    } else if (selfPosScore >= Score.ALIVE_THREE * 2) {
+                        selfDoubleThrees.add(new CoordWithHeuristic(x, y, selfPosScore));
+                    } else if (enermyPosScore >= Score.ALIVE_THREE * 2) {
+                        enermyDoubleThrees.add(new CoordWithHeuristic(x, y, enermyPosScore));
+                    } else if (selfPosScore >= Score.ALIVE_THREE) {
+                        selfAliveThrees.add(new CoordWithHeuristic(x, y, selfPosScore));
                     }
                 }
             }
         }
-        Collections.sort(sortArray);
+
         List<Coord> result = new ArrayList<>();
-        for (CoordWithHeuristic c : sortArray) {
-            result.add(c.coord);
+
+        // 己方能连五的位置，必杀，直接返回
+        // 敌方下一手能连五的位置，己方要把这里堵住，直接返回
+        if (fives.size() > 0) {
+            result.addAll(fives);
+            return result;
         }
+
+        // 己方能活四的位置，必杀，直接返回
+        if (selfAliveFours.size() > 0) {
+            result.addAll(selfAliveFours);
+            return result;
+        }
+
+        // 敌方下一手能活四的位置
+        if (enermyAliveFours.size() > 0) {
+            Collections.sort(selfBlockedFours);
+            Collections.sort(enermyAliveFours);
+            if (selfBlockedFours.size() > 0) {
+                result.addAll(selfBlockedFours);// 优先考虑己方成死四，以攻代守
+                result.addAll(enermyAliveFours);// 其次考虑去堵敌方的活四，消极防守
+            } else {
+                // 己方这一手不能成死四
+                result.addAll(enermyAliveFours);// 堵敌方的活四，消极防守
+            }
+            return result;
+        }
+
+        // 己方这一手和敌方下一手都不能连五或者活四
+        // 排序
+        Collections.sort(selfDoubleThrees);
+        Collections.sort(selfBlockedFours);
+        Collections.sort(enermyDoubleThrees);
+        Collections.sort(enermyBlockedFours);
+        Collections.sort(selfAliveThrees);
+
+        result.addAll(selfDoubleThrees);// 己方成双活三
+        result.addAll(enermyBlockedFours);// 己方成死四
+        result.addAll(selfAliveThrees); // 己方成活三
+        result.addAll(enermyDoubleThrees);// 堵敌方双活三
+        result.addAll(enermyBlockedFours);// 堵敌方死四
         return result;
     }
 
     /**
      * 带有启发式函数值的坐标类，用于对空位进行排序
      */
-    class CoordWithHeuristic implements Comparable<CoordWithHeuristic> {
+    class CoordWithHeuristic extends Coord implements Comparable<CoordWithHeuristic> {
         /** 坐标 */
-        Coord coord;
+        // Coord coord;
         /** 该位置的启发函数值 */
         int h;
 
@@ -687,7 +736,14 @@ public class ChessBoard {
          * @param h     启发函数值
          */
         public CoordWithHeuristic(Coord coord, int h) {
-            this.coord = coord;
+            this.x = coord.x;
+            this.y = coord.y;
+            this.h = h;
+        }
+
+        public CoordWithHeuristic(int x, int y, int h) {
+            this.x = x;
+            this.y = y;
             this.h = h;
         }
 
@@ -695,6 +751,7 @@ public class ChessBoard {
         public int compareTo(CoordWithHeuristic c2) {
             return this.h - c2.h;
         }
+
     }
 
     /**
