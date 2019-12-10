@@ -15,8 +15,6 @@ public class ChessBoard {
     private int[][][] humHeuristic;
     /** 电脑的空位启发式函数值 */
     private int[][][] comHeuristic;
-    /** 空位附近是否有棋子（不管什么类型） */
-    // private boolean[][] neighborMatrix;
     /** 棋子总数 */
     private int chessNum;
     /** 位置附近棋子的总数 */
@@ -90,7 +88,7 @@ public class ChessBoard {
         chessNum--;// 更新棋子总数
         updateNeighborAfterDo(x, y, oldType);// 更新邻居矩阵
         restoreHeuristic(x, y, oldHeuristic[0], oldHeuristic[1]);// 更新启发函数矩阵
-        zobrist.goUpdate(x, y, oldType);
+        zobrist.goUpdate(x, y, oldType);// 更新哈希值
         return true;
     }
 
@@ -101,7 +99,7 @@ public class ChessBoard {
     /**
      * 判断棋盘是否已满
      * 
-     * @retrun 棋盘是否已满
+     * @return 棋盘是否已满
      */
     public boolean isFull() {
         return chessNum == BOARD_SIZE * BOARD_SIZE;
@@ -117,65 +115,6 @@ public class ChessBoard {
     private boolean hasNeighbor(int x, int y) {
         return neighborNum[x][y] > 0;
     }
-
-    // /**
-    // * 备份hasNeighbor矩阵
-    // *
-    // * @param x 落子的行号
-    // * @param y 落子的列号
-    // * @return 5*5数组
-    // */
-    // public boolean[][] backupNeighbor(int x, int y) {
-    // boolean[][] oldNeighbor = new boolean[BOARD_SIZE][BOARD_SIZE];
-    // for (int i = x - 2; i <= x + 2; i++) {
-    // for (int j = y - 2; j <= y + 2; j++) {
-    // if (!outOfBound(i, j)) {
-    // oldNeighbor[i][j] = neighborMatrix[i][j];
-    // }
-    // }
-    // }
-    // return oldNeighbor;
-    // }
-
-    // private void restoreNeighbor(int x, int y, boolean[][] oldNeighbor) {
-    // for (int i = x - 2; i <= x + 2; i++) {
-    // for (int j = y - 2; j <= y + 2; j++) {
-    // if (!outOfBound(i, j)) {
-    // neighborMatrix[i][j] = oldNeighbor[i][j];
-    // }
-    // }
-    // }
-    // }
-
-    // /**
-    // * 对(x,y)位置落子或撤销后，更新邻居矩阵
-    // *
-    // * @param x 落子位置或撤销位置的行号
-    // * @param y 落子位置或撤销位置的列号
-    // */
-    // private void updateNeighborAfterDo(int x, int y) {
-    // if (boardMatrix[x][y] != EMPTY_CHESS) {
-    // // 在(x,y)位置落子，直接把周围的空位修改成有邻居即可
-    // for (int i = x - 2; i <= x + 2; i++) {
-    // for (int j = y - 2; j <= y + 2; j++) {
-    // // 没有越界且是个空位
-    // if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
-    // neighborMatrix[i][j] = true;
-    // }
-    // }
-    // }
-    // } else {
-    // // 在(x,y)位置撤销棋子，周围空位的邻居情况需要具体计算
-    // for (int i = x - 2; i <= x + 2; i++) {
-    // for (int j = y - 2; j <= y + 2; j++) {
-    // // 没有越界且是个空位
-    // if (!outOfBound(i, j) && boardMatrix[i][j] == EMPTY_CHESS) {
-    // calcuNeighbor(i, j);
-    // }
-    // }
-    // }
-    // }
-    // }
 
     /**
      * 对(x,y)位置落子或撤销后，更新邻居矩阵
@@ -224,25 +163,6 @@ public class ChessBoard {
             }
         }
     }
-
-    // /**
-    // * 计算(x,y)附近是否有棋子，并修改邻居矩阵中相应的位置
-    // *
-    // * @param x 中心位置的行号
-    // * @param y 中心位置的列号
-    // */
-    // private void calcuNeighbor(int x, int y) {
-    // boolean hasNeighbor = false;
-    // for (int i = x - 2; i <= x + 2; i++) {
-    // for (int j = y - 2; j <= y + 2; j++) {
-    // if (!outOfBound(i, j) && boardMatrix[i][j] != EMPTY_CHESS) {
-    // hasNeighbor = true;// 没有越界且有棋子占据
-    // break;
-    // }
-    // }
-    // }
-    // neighborMatrix[x][y] = hasNeighbor;
-    // }
 
     /** [hum[][][], com[][][]] */
     public int[][][][] backupHeuristic(int x, int y) {
@@ -437,13 +357,6 @@ public class ChessBoard {
                 calcuHeuristic(ux, uy, Direction.ANTIDIAGONAL);
             }
         }
-        // 若自己这个位置变成了空格，则需要更新自己这里的启发函数值
-        // if (boardMatrix[x][y] == EMPTY_CHESS) {
-        // calcuHeuristic(x, y, Direction.VERTICAL);
-        // calcuHeuristic(x, y, Direction.HORIZONTAL);
-        // calcuHeuristic(x, y, Direction.DIAGONAL);
-        // calcuHeuristic(x, y, Direction.ANTIDIAGONAL);
-        // }
     }
 
     /**
@@ -860,35 +773,6 @@ public class ChessBoard {
     }
 
     // 各种工具static方法
-
-    /**
-     * 生成棋盘所有的直线的坐标
-     * 
-     * @retrun 所有的直线的坐标
-     */
-    /*
-     * private static List<List<Coord>> allLines() { List<Coord> line = null;// 直线坐标
-     * List<List<Coord>> lines = new ArrayList<>();// 装着所有的直线 // 水平直线 for (int x =
-     * 0; x < BOARD_SIZE; x++) { line = new ArrayList<>(); for (int y = 0; y <
-     * BOARD_SIZE; y++) { line.add(new Coord(x, y)); } lines.add(line); } // 竖直直线
-     * for (int y = 0; y < BOARD_SIZE; y++) { line = new ArrayList<>(); for (int x =
-     * 0; x < BOARD_SIZE; x++) { line.add(new Coord(x, y)); } lines.add(line); }
-     * 
-     * int startX, startY; // 对角线 for (startX = BOARD_SIZE - 1, startY = 0; startX
-     * >= 0; startX--) { line = new ArrayList<>(); for (int x = startX, y = startY;
-     * x < BOARD_SIZE && y < BOARD_SIZE; x++, y++) { line.add(new Coord(x, y)); } if
-     * (line.size() >= 5) { lines.add(line); } } for (startX = 0, startY = 1; startY
-     * < BOARD_SIZE; startY++) { line = new ArrayList<>(); for (int x = startX, y =
-     * startY; x < BOARD_SIZE && y < BOARD_SIZE; x++, y++) { line.add(new Coord(x,
-     * y)); } if (line.size() >= 5) { lines.add(line); } } // 反对角线 for (startX =
-     * BOARD_SIZE - 1, startY = BOARD_SIZE - 1; startX >= 0; startX--) { line = new
-     * ArrayList<>(); for (int x = startX, y = startY; x < BOARD_SIZE && y >= 0;
-     * x++, y--) { line.add(new Coord(x, y)); } if (line.size() >= 5) {
-     * lines.add(line); } } for (startX = 0, startY = BOARD_SIZE - 2; startY >= 0;
-     * startY--) { line = new ArrayList<>(); for (int x = startX, y = startY; x <
-     * BOARD_SIZE && y >= 0; x++, y--) { line.add(new Coord(x, y)); } if
-     * (line.size() >= 5) { lines.add(line); } } return lines; }
-     */
 
     /**
      * @return (x,y)是否越界

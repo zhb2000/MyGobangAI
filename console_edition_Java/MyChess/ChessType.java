@@ -5,8 +5,6 @@ package MyChess;
  */
 public class ChessType {
 
-    /** 被禁止或被阻塞的位置 */
-    //final public static int BLOCKED_CHESS = -1;
     /** 空位置 */
     final public static int EMPTY_CHESS = 0;
     /** 电脑棋子 */
