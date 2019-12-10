@@ -15,10 +15,15 @@ public class Status {
     public static int goMaxDepth = 0;
     /** 本轮搜索考察过的结点总数 */
     public static int nodeNum = 0;
+    /** 叶子结点个数 */
+    public static int leafNum = 0;
     /** 完全命中 */
     public static int completeMatch = 0;
     /** 部分命中 */
     public static int partialMatch = 0;
+    /** 叶子结点命中 */
+    public static int leafMatch = 0;
     /** ab剪枝次数 */
     public static int ABPruning = 0;
+
 }

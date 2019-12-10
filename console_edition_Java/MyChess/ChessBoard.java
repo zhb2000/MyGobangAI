@@ -193,7 +193,7 @@ public class ChessBoard {
                         // 在(x,y)落子，周围邻居数量加1
                         neighborNum[i][j]++;
                     } else {
-                        //// 在(x,y)落子，周围邻居数量减1
+                        // 在(x,y)撤销，周围邻居数量减1
                         neighborNum[i][j]--;
                     }
                 }
@@ -438,12 +438,12 @@ public class ChessBoard {
             }
         }
         // 若自己这个位置变成了空格，则需要更新自己这里的启发函数值
-        if (boardMatrix[x][y] == EMPTY_CHESS) {
-            calcuHeuristic(x, y, Direction.VERTICAL);
-            calcuHeuristic(x, y, Direction.HORIZONTAL);
-            calcuHeuristic(x, y, Direction.DIAGONAL);
-            calcuHeuristic(x, y, Direction.ANTIDIAGONAL);
-        }
+        // if (boardMatrix[x][y] == EMPTY_CHESS) {
+        // calcuHeuristic(x, y, Direction.VERTICAL);
+        // calcuHeuristic(x, y, Direction.HORIZONTAL);
+        // calcuHeuristic(x, y, Direction.DIAGONAL);
+        // calcuHeuristic(x, y, Direction.ANTIDIAGONAL);
+        // }
     }
 
     /**
@@ -501,7 +501,6 @@ public class ChessBoard {
      * @return 该空格对于该方的启发函数值
      */
     private int heuristic(int x, int y, int type) {
-        // TODO 已修改启发函数，加入近邻奖励
         if (type == COM_CHESS) {
             // 电脑方的棋子要下到(x,y)位置的空格上
             // 把该空格位置四个方向的启发函数值加起来
@@ -619,7 +618,7 @@ public class ChessBoard {
         Collections.sort(otherPositions);
 
         result.addAll(selfDoubleThrees);// 己方成双活三
-        result.addAll(enermyBlockedFours);// 己方成死四
+        result.addAll(selfBlockedFours);// 己方成死四
         result.addAll(selfAliveThrees); // 己方成活三
         result.addAll(enermyDoubleThrees);// 堵敌方双活三
         result.addAll(enermyBlockedFours);// 堵敌方死四
@@ -643,7 +642,6 @@ public class ChessBoard {
         List<CoordWithHeuristic> selfAliveFours = new ArrayList<>();
         List<CoordWithHeuristic> enermyAliveFours = new ArrayList<>();
         List<CoordWithHeuristic> selfBlockedFours = new ArrayList<>();
-        List<CoordWithHeuristic> enermyBlockedFours = new ArrayList<>();
         List<CoordWithHeuristic> selfDoubleThrees = new ArrayList<>();
         List<CoordWithHeuristic> enermyDoubleThrees = new ArrayList<>();
         List<CoordWithHeuristic> selfAliveThrees = new ArrayList<>();
@@ -662,8 +660,6 @@ public class ChessBoard {
                         enermyAliveFours.add(new CoordWithHeuristic(x, y, enermyPosScore));
                     } else if (selfPosScore >= Score.BLOCKED_FOUR) {
                         selfBlockedFours.add(new CoordWithHeuristic(x, y, selfPosScore));
-                    } else if (enermyPosScore >= Score.BLOCKED_FOUR) {
-                        enermyBlockedFours.add(new CoordWithHeuristic(x, y, enermyPosScore));
                     } else if (selfPosScore >= Score.ALIVE_THREE * 2) {
                         selfDoubleThrees.add(new CoordWithHeuristic(x, y, selfPosScore));
                     } else if (enermyPosScore >= Score.ALIVE_THREE * 2) {
@@ -709,14 +705,12 @@ public class ChessBoard {
         Collections.sort(selfDoubleThrees);
         Collections.sort(selfBlockedFours);
         Collections.sort(enermyDoubleThrees);
-        Collections.sort(enermyBlockedFours);
         Collections.sort(selfAliveThrees);
 
         result.addAll(selfDoubleThrees);// 己方成双活三
-        result.addAll(enermyBlockedFours);// 己方成死四
+        result.addAll(selfBlockedFours);// 己方成死四
         result.addAll(selfAliveThrees); // 己方成活三
         result.addAll(enermyDoubleThrees);// 堵敌方双活三
-        result.addAll(enermyBlockedFours);// 堵敌方死四
         return result;
     }
 

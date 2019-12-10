@@ -48,19 +48,29 @@ public class SearchAlgo {
                 return -Score.INF;
             }
         }
-        int evaluateType;
-        if (floorType == MAX_FLOOR) {
-            evaluateType = COM_CHESS;
-        } else {
-            evaluateType = HUM_CHESS;
-        }
-        if (board.isFull()) {
+
+        // 获取缓存
+        long boardHashCode = board.getCode();
+        TableCell cell = TransTable.get(boardHashCode);
+
+        // 叶子结点评估
+        if (board.isFull() || depth == Config.MAX_DEPTH) {
+            Status.leafNum++;
+            int eval;
+            if (cell.isValid && cell.chessNum == board.getNumber() && cell.evaValid) {
+                Status.leafMatch++;
+                eval = cell.evaluate;
+            } else {
+                int evaluateType = (floorType == MAX_FLOOR) ? COM_CHESS : HUM_CHESS;
+                eval = board.evaluate(evaluateType);
+
+                cell.isValid = true;
+                cell.chessNum = board.getNumber();
+                cell.evaValid = true;
+                cell.evaluate = eval;
+            }
             board.undo(putX, putY, oldHeuristic);
-            return board.evaluate(evaluateType);
-        }
-        if (depth == Config.MAX_DEPTH) {
-            board.undo(putX, putY, oldHeuristic);
-            return board.evaluate(evaluateType);
+            return eval;
         }
 
         if (depth == Config.START_KILLER) {
@@ -76,8 +86,6 @@ public class SearchAlgo {
 
             int f = -Score.INF;
 
-            long boardHashCode = board.getCode();
-            TableCell cell = TransTable.get(boardHashCode);
             if (cell.isValid && cell.chessNum == board.getNumber() && cell.fType != TableCell.INVALID_F) {
                 if (cell.treeDepth >= Config.MAX_DEPTH - depth) {
                     if (cell.fType == TableCell.EXACT_F) {
@@ -115,6 +123,10 @@ public class SearchAlgo {
                         cell.fType = TableCell.MIN_F;
                         cell.treeDepth = Config.MAX_DEPTH - depth;
                         cell.fValue = f;
+                    } else if (cell.treeDepth == Config.MAX_DEPTH - depth) {
+                        if (cell.fType == TableCell.MIN_F && f < cell.fValue) {
+                            cell.fValue = f;
+                        }
                     }
 
                     board.undo(putX, putY, oldHeuristic);
@@ -131,16 +143,26 @@ public class SearchAlgo {
                 }
             }
 
-            if (!cell.isValid || cell.chessNum != board.getNumber() || cell.treeDepth < Config.MAX_DEPTH - depth) {
+            // 更新置换表
+            if (!cell.isValid || cell.chessNum != board.getNumber() || cell.treeDepth <= Config.MAX_DEPTH - depth) {
                 cell.isValid = true;
                 cell.chessNum = board.getNumber();
                 cell.treeDepth = Config.MAX_DEPTH - depth;
                 if (Status.isOutTime) {
-                    cell.fType = TableCell.MIN_F;
+                    if (cell.isValid && cell.chessNum == board.getNumber()) {
+                        if (cell.treeDepth == Config.MAX_DEPTH - depth && cell.fType == TableCell.MIN_F
+                                && f < cell.fValue) {
+                            cell.fType = TableCell.MIN_F;
+                            cell.fValue = f;
+                        }
+                    } else {
+                        cell.fType = TableCell.MIN_F;
+                        cell.fValue = f;
+                    }
                 } else {
                     cell.fType = TableCell.EXACT_F;
+                    cell.fValue = f;
                 }
-                cell.fValue = f;
             }
 
             board.undo(putX, putY, oldHeuristic);
@@ -160,8 +182,6 @@ public class SearchAlgo {
 
             int f = Score.INF;
 
-            long boardHashCode = board.getCode();
-            TableCell cell = TransTable.get(boardHashCode);
             if (cell.isValid && cell.chessNum == board.getNumber() && cell.fType != TableCell.INVALID_F) {
                 if (cell.treeDepth >= Config.MAX_DEPTH - depth) {
                     if (cell.fType == TableCell.EXACT_F) {
@@ -200,6 +220,10 @@ public class SearchAlgo {
                         cell.fType = TableCell.MAX_F;
                         cell.treeDepth = Config.MAX_DEPTH - depth;
                         cell.fValue = f;
+                    } else if (cell.treeDepth == Config.MAX_DEPTH - depth) {
+                        if (cell.fType == TableCell.MAX_F && f > cell.fValue) {
+                            cell.fValue = f;
+                        }
                     }
 
                     board.undo(putX, putY, oldHeuristic);
@@ -216,16 +240,25 @@ public class SearchAlgo {
                 }
             }
 
-            if (!cell.isValid || cell.chessNum != board.getNumber() || cell.treeDepth < Config.MAX_DEPTH - depth) {
+            if (!cell.isValid || cell.chessNum != board.getNumber() || cell.treeDepth <= Config.MAX_DEPTH - depth) {
                 cell.isValid = true;
                 cell.chessNum = board.getNumber();
                 cell.treeDepth = Config.MAX_DEPTH - depth;
                 if (Status.isOutTime) {
-                    cell.fType = TableCell.MAX_F;
+                    if (cell.isValid && cell.chessNum == board.getNumber()) {
+                        if (cell.treeDepth == Config.MAX_DEPTH - depth && cell.fType == TableCell.MAX_F
+                                && f > cell.fValue) {
+                            cell.fType = TableCell.MAX_F;
+                            cell.fValue = f;
+                        }
+                    } else {
+                        cell.fType = TableCell.MAX_F;
+                        cell.fValue = f;
+                    }
                 } else {
                     cell.fType = TableCell.EXACT_F;
+                    cell.fValue = f;
                 }
-                cell.fValue = f;
             }
 
             board.undo(putX, putY, oldHeuristic);
@@ -248,14 +281,19 @@ public class SearchAlgo {
         initStatus();
 
         if (board.getNumber() <= 6) {
-            Config.MAX_DEPTH = 7;
-            Config.MAX_EMPTY_NUM = 10;
+            //1~3回合
+            Config.MAX_DEPTH = 4;
+            Config.MAX_EMPTY_NUM = 20;
         } else if (board.getNumber() <= 10) {
-            Config.MAX_DEPTH = 8;
+            //4~5回合
+            Config.MAX_DEPTH = 7;
             Config.MAX_EMPTY_NUM = 11;
+        } else if (board.getNumber() <= 14) {
+            //6~7回合
+            Config.MAX_DEPTH = 8;
         } else {
             Config.MAX_DEPTH = 9;
-            Config.MAX_EMPTY_NUM = 13;
+            Config.MAX_EMPTY_NUM = 12;
         }
 
         int f = -Score.INF - 1;
@@ -283,19 +321,21 @@ public class SearchAlgo {
         Status.isOutTime = false;
         Status.goMaxDepth = 0;
         Status.nodeNum = 1;
+        Status.leafNum = 0;
         Status.completeMatch = 0;
         Status.partialMatch = 0;
+        Status.leafMatch = 0;
         Status.ABPruning = 0;
     }
 
     private static void printStatus(int f) {
         String depthStr = "最大搜索深度：" + Status.goMaxDepth;
-        String nodeNumStr = "考察结点个数：" + Status.nodeNum;
-        String tableStr = "置换表命中总次数：" + (Status.completeMatch + Status.partialMatch) + " " + "完全命中："
-                + Status.completeMatch + " " + "部分命中：" + Status.partialMatch;
+        String nodeNumStr = "考察结点个数：" + Status.nodeNum + " " + "叶子结点个数：" + Status.leafNum;
+        String tableStr = "置换表命中总次数：" + (Status.completeMatch + Status.partialMatch + Status.leafMatch) + " " + "完全命中："
+                + Status.completeMatch + " " + "部分命中：" + Status.partialMatch + " " + "叶子结点命中：" + Status.leafMatch;
         String timeUseStr = "用时：" + (System.currentTimeMillis() - Status.startTime) / 1000.0 + "秒" + " " + "超时："
                 + Status.isOutTime;
-        String purnStr = "剪枝次数：" + Status.ABPruning;
+        String purnStr = "ab剪枝次数：" + Status.ABPruning;
         String fStr = "倒推f值：" + f;
         System.out.println(
                 depthStr + "\n" + nodeNumStr + "\n" + tableStr + "\n" + timeUseStr + "\n" + purnStr + "\n" + fStr);
