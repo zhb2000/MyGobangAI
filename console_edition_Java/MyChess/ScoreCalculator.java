@@ -107,7 +107,7 @@ public class ScoreCalculator {
      * @return 出现次数
      */
     private static int cnt(int left, int right, int type) {
-        int cntArray[];
+        int[] cntArray;
         if (type == SELF) {
             cntArray = selfCnt;
         } else if (type == EMPTY) {
