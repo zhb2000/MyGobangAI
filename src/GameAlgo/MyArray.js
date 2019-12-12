@@ -6,6 +6,8 @@ export default {
      * @param {Number} l2 第2维长度
      * @param {Number} l3 第3维长度
      * @param {Number} l4 第4维长度
+     * 
+     * @returns {Number[]|Number[][]|Number[][][]|Number[][][][]} 多维数组
      */
     create: function (l1, l2, l3, l4) {
         if (arguments.length === 1) {
