@@ -750,13 +750,10 @@ public class ChessBoard {
             str.append(x % 10 + " ");
             for (int y = 0; y < BOARD_SIZE; y++) {
                 if (boardMatrix[x][y] == EMPTY_CHESS) {
-                    // str.append(" ");
-                    str.append("＋");// □
+                    str.append("＋");
                 } else if (boardMatrix[x][y] == COM_CHESS) {
-                    // str.append("O ");
-                    str.append("〇");// ○
+                    str.append("〇");
                 } else {
-                    // str.append("X ");
                     str.append("●");
                 }
             }

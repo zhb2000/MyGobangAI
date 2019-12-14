@@ -55,7 +55,7 @@ export default class ChessBoard {
          * Zobrist对象
          * @type Zobrist
          */
-        this.zobris = new Zobrist();
+        this.zobrist = new Zobrist();
     }
 
     /**
@@ -78,7 +78,7 @@ export default class ChessBoard {
         this.chessNum++;// 更新棋子总数
         this.updateNeighborAfterDo(x, y, EMPTY_CHESS); // 更新邻居矩阵
         this.updateHeuristicAfterDo(x, y); // 更新启发函数矩阵
-        this.zobris.goUpdate(x, y, type);// 更新哈希值
+        this.zobrist.goUpdate(x, y, EMPTY_CHESS, type);// 更新哈希值
         return true;
     }
 
@@ -103,7 +103,7 @@ export default class ChessBoard {
         this.chessNum--;// 更新棋子总数
         this.updateNeighborAfterDo(x, y, oldType);// 更新邻居矩阵
         this.restoreHeuristic(backup);// 更新启发函数矩阵
-        this.zobrist.goUpdate(x, y, oldType);
+        this.zobrist.goUpdate(x, y, oldType, EMPTY_CHESS);// 更新哈希值
         return true;
     }
 
@@ -202,6 +202,7 @@ export default class ChessBoard {
                 }
             }
         }
+        return backup;
     }
 
     /**
@@ -600,6 +601,33 @@ export default class ChessBoard {
     }
 
     /**
+     * 字符串形式
+     * @returns {String} 字符串
+     */
+    toString() {
+        let str = "";
+        str += "  ";
+        for (let i = 0; i < BOARD_SIZE; i++) {
+            str += i % 10 + " ";
+        }
+        str += "\n";
+        for (let x = 0; x < BOARD_SIZE; x++) {
+            str += x % 10 + " ";
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                if (this.boardMatrix[x][y] == EMPTY_CHESS) {
+                    str += "＋";
+                } else if (this.boardMatrix[x][y] == COM_CHESS) {
+                    str += "〇";
+                } else {
+                    str += "●";
+                }
+            }
+            str += "\n";
+        }
+        return str;
+    }
+
+    /**
      * 获取棋子的总数
      * 
      * @returns {Number} 棋子的总数
@@ -613,7 +641,7 @@ export default class ChessBoard {
      * @returns {Number} 哈希值
      */
     getCode() {
-        return this.zobris.code();
+        return this.zobrist.code();
     }
 
     /**

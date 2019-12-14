@@ -202,7 +202,7 @@ public class SearchAlgo {
                 }
             }
 
-            for (int i = 0, cnt = 0; i < emptyPosList.size() && cnt <= Config.MAX_EMPTY_NUM; i++, cnt++) {
+            for (int i = 0, cnt = 0; i < emptyPosList.size() && cnt < Config.MAX_EMPTY_NUM; i++, cnt++) {
                 Coord coord = emptyPosList.get(i);
                 int x = coord.x;// 空位的x坐标
                 int y = coord.y;// 空位的y坐标
@@ -240,7 +240,7 @@ public class SearchAlgo {
                 }
             }
 
-            if (!cell.isValid || cell.chessNum != board.getNumber() || cell.treeDepth <= Config.MAX_DEPTH - depth) {
+            if (!cell.isValid || cell.chessNum != board.getNumber() || cell.treeDepth < Config.MAX_DEPTH - depth) {
                 cell.isValid = true;
                 cell.chessNum = board.getNumber();
                 cell.treeDepth = Config.MAX_DEPTH - depth;
@@ -300,7 +300,7 @@ public class SearchAlgo {
         Coord bestPut = new Coord(7, 7);// 若generator生成的候选数组为空则默认放中间
         List<Coord> emptyPosList = board.generator(COM_CHESS);
         int cnt = 0;
-        for (int i = 0; i < emptyPosList.size() && cnt <= Config.MAX_EMPTY_NUM; i++, cnt++) {
+        for (int i = 0; i < emptyPosList.size() && cnt < Config.MAX_EMPTY_NUM; i++, cnt++) {
             Coord coord = emptyPosList.get(i);
             int x = coord.x;// 空位的x坐标
             int y = coord.y;// 空位的y坐标

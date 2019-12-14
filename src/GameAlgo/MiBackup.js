@@ -1,5 +1,5 @@
 import array from "./MyArray.js";
-import Coord from "./Coord.js";
+//import Coord from "./Coord.js";
 
 /**
  * 米字形备份
