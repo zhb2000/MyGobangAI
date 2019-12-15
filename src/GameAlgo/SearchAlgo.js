@@ -1,12 +1,12 @@
-import { COM_CHESS, HUM_CHESS } from "./ChessType";
+import { COM_CHESS, HUM_CHESS } from "./ChessType.js";
 import Config from "./Config.js";
 //import TableCell from "./TableCell.js";
 import { INVALID_F, EXACT_F, LOWER_F, UPPER_F } from "./TableCell.js";
 import getCell from "./TransTable.js";
 import Status from "./Status.js";
 //import ChessBoard from "./ChessBoard.js";
-import Score from "./Score";
-import Coord from "./Coord";
+import Score from "./Score.js";
+import Coord from "./Coord.js";
 
 const MAX_FLOOR = 0;
 const MIN_FLOOR = 1;
@@ -30,6 +30,7 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
 
     // 判断是否一方已赢
     if (board.isWin(hasX, hasY)) {
+        Status.winNum++;//TODO
         return (hasType === COM_CHESS) ? Score.INF : -Score.INF;
     }
 
@@ -43,7 +44,8 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
         Status.leafNum++;
         /**评估值 */
         let evaValue;
-        if (cell.validCell(board.getCode(), board.getNumber())
+        if (Config.useTransTable
+            && cell.validCell(board.getCode(), board.getNumber())
             && cell.evaValid) {
             Status.leafMatch++;
             evaValue = cell.evaluate;
@@ -64,7 +66,8 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
 
     if (floorType === MAX_FLOOR) {
         let f = -Score.INF;
-        if (cell.validCell(board.getCode(), board.getNumber())
+        if (Config.useTransTable
+            && cell.validCell(board.getCode(), board.getNumber())
             && cell.fType != INVALID_F
             && cell.treeDepth >= treeDepth) {
             if (cell.fType === EXACT_F) {
@@ -102,39 +105,43 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
             }
             // 超时强制剪枝
             if (new Date().getTime() - Status.startTime > Config.MAX_TIME) {
+                Status.isOutTime = true;
                 hasPurning = true;
                 break;
             }
         }
 
-        // 更新置换表
-        if (!cell.validCell(board.getCode(), board.getNumber())
-            || board.fType === INVALID_F) {
-            cell.isValid = true;
-            cell.hashCode = board.getCode();
-            cell.chessNum = board.getNumber();
-            cell.treeDepth = treeDepth;
-            cell.f = f;
-            cell.fType = hasPurning ? LOWER_F : EXACT_F;
-        } else if (treeDepth >= cell.treeDepth) {
-            if (hasPurning) {
-                if (treeDepth > cell.treeDepth
-                    || (treeDepth === cell.treeDepth && f > cell.f)) {
+        if (Config.useTransTable) {
+            // 更新置换表
+            if (!cell.validCell(board.getCode(), board.getNumber())
+                || board.fType === INVALID_F) {
+                cell.isValid = true;
+                cell.hashCode = board.getCode();
+                cell.chessNum = board.getNumber();
+                cell.treeDepth = treeDepth;
+                cell.f = f;
+                cell.fType = hasPurning ? LOWER_F : EXACT_F;
+            } else if (treeDepth >= cell.treeDepth) {
+                if (hasPurning) {
+                    if (treeDepth > cell.treeDepth
+                        || (treeDepth === cell.treeDepth && f > cell.f)) {
+                        cell.f = f;
+                        cell.fType = LOWER_F;
+                        cell.treeDepth = treeDepth;
+                    }
+                } else {
                     cell.f = f;
-                    cell.fType = LOWER_F;
+                    cell.fType = EXACT_F;
                     cell.treeDepth = treeDepth;
                 }
-            } else {
-                cell.f = f;
-                cell.fType = EXACT_F;
-                cell.treeDepth = treeDepth;
             }
         }
 
         return f;
     } else {
         let f = Score.INF;
-        if (cell.validCell(board.getCode(), board.getNumber())
+        if (Config.useTransTable
+            && cell.validCell(board.getCode(), board.getNumber())
             && cell.fType != INVALID_F
             && cell.treeDepth >= treeDepth) {
             if (cell.fType === EXACT_F) {
@@ -156,7 +163,7 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
             let x = emptyPosList[i].x, y = emptyPosList[i].y;
             let backup = board.backupHeuristic(x, y);//备份
 
-            board.put(x, y, COM_CHESS);//落子
+            board.put(x, y, HUM_CHESS);//落子
             let childF = dfs(board, f, MAX_FLOOR, depth + 1, x, y, HUM_CHESS);
             board.undo(x, y, backup);//撤销
 
@@ -172,32 +179,35 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
             }
             // 超时强制剪枝
             if (new Date().getTime() - Status.startTime > Config.MAX_TIME) {
+                Status.isOutTime = true;
                 hasPurning = true;
                 break;
             }
         }
 
-        // 更新置换表
-        if (!cell.validCell(board.getCode(), board.getNumber())
-            || board.fType === INVALID_F) {
-            cell.isValid = true;
-            cell.hashCode = board.getCode();
-            cell.chessNum = board.getNumber();
-            cell.treeDepth = treeDepth;
-            cell.f = f;
-            cell.fType = hasPurning ? UPPER_F : EXACT_F;
-        } else if (treeDepth >= cell.treeDepth) {
-            if (hasPurning) {
-                if (treeDepth > cell.treeDepth
-                    || (treeDepth === cell.treeDepth && f < cell.f)) {
+        if (Config.useTransTable) {
+            // 更新置换表
+            if (!cell.validCell(board.getCode(), board.getNumber())
+                || board.fType === INVALID_F) {
+                cell.isValid = true;
+                cell.hashCode = board.getCode();
+                cell.chessNum = board.getNumber();
+                cell.treeDepth = treeDepth;
+                cell.f = f;
+                cell.fType = hasPurning ? UPPER_F : EXACT_F;
+            } else if (treeDepth >= cell.treeDepth) {
+                if (hasPurning) {
+                    if (treeDepth > cell.treeDepth
+                        || (treeDepth === cell.treeDepth && f < cell.f)) {
+                        cell.f = f;
+                        cell.fType = UPPER_F;
+                        cell.treeDepth = treeDepth;
+                    }
+                } else {
                     cell.f = f;
-                    cell.fType = UPPER_F;
+                    cell.fType = EXACT_F;
                     cell.treeDepth = treeDepth;
                 }
-            } else {
-                cell.f = f;
-                cell.fType = EXACT_F;
-                cell.treeDepth = treeDepth;
             }
         }
 
@@ -219,14 +229,15 @@ function getBestPut(board) {
         Config.MAX_EMPTY_NUM = 20;
     } else if (board.getNumber() <= 10) {
         //4~5回合
-        Config.MAX_DEPTH = 7;
-        Config.MAX_EMPTY_NUM = 11;
+        Config.MAX_DEPTH = 6;
+        Config.MAX_EMPTY_NUM = 15;
     } else if (board.getNumber() <= 14) {
         //6~7回合
         Config.MAX_DEPTH = 8;
+        Config.MAX_EMPTY_NUM = 15;
     } else {
         Config.MAX_DEPTH = 9;
-        Config.MAX_EMPTY_NUM = 12;
+        Config.MAX_EMPTY_NUM = 15;
     }
 
     let f = -Score.INF - 1;
@@ -248,7 +259,7 @@ function getBestPut(board) {
             bestPut.y = y;
         }
     }
-    console.log(getStatusStr());
+    console.log(getStatusStr(f));
     return bestPut;
 }
 
@@ -261,6 +272,7 @@ function initStatus() {
     Status.goMaxDepth = 0;
     Status.nodeNum = 1;
     Status.leafNum = 0;
+    Status.winNum = 0;
     Status.completeMatch = 0;
     Status.partialMatch = 0;
     Status.leafMatch = 0;
@@ -276,7 +288,8 @@ function getStatusStr(f) {
     let str = "";
     str += "最大搜索深度：" + Status.goMaxDepth + "\n";
     str += "考察结点个数：" + Status.nodeNum + " "
-        + "叶子结点个数：" + Status.leafNum + "\n"
+        + "叶子结点个数：" + Status.leafNum + " "
+        + "输赢局面个数：" + Status.winNum + "\n";
     str += "置换表命中总次数：" + (Status.completeMatch + Status.partialMatch + Status.leafMatch) + " "
         + "完全命中：" + Status.completeMatch + " "
         + "部分命中：" + Status.partialMatch + " "
@@ -287,3 +300,5 @@ function getStatusStr(f) {
     str += "倒推f值：" + f + "\n";
     return str;
 }
+
+export default getBestPut;

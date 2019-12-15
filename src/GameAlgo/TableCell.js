@@ -25,7 +25,7 @@ export default class TableCell {
         /**记录的结点f值的类型 */
         this.fType = INVALID_F;
         /**结点回传f值 */
-        this.fValue = 0;
+        this.fValue = 19;
         /**子树深度 */
         this.treeDepth = 0;
 
@@ -41,9 +41,12 @@ export default class TableCell {
      * @param {Number} chessNum 棋盘棋子个数
      */
     validCell(hashCode, chessNum) {
-        return this.isValid
+        if (this.isValid && this.hashCode === hashCode && this.chessNum != chessNum) {
+            console.log("same code, not same num");
+        }
+        return (this.isValid
             && this.hashCode === hashCode
-            && this.chessNum === chessNum;
+            && this.chessNum === chessNum);
     }
 }
 export { INVALID_F, EXACT_F, LOWER_F, UPPER_F };

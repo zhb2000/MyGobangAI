@@ -7,4 +7,4 @@ const COM_CHESS = 1;
 /**人类棋子 */
 const HUM_CHESS = 2;
 
-export default { EMPTY_CHESS, COM_CHESS, HUM_CHESS };
+export { EMPTY_CHESS, COM_CHESS, HUM_CHESS };

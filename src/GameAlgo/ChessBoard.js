@@ -1,5 +1,4 @@
 import { EMPTY_CHESS, COM_CHESS, HUM_CHESS } from "./ChessType.js";
-import { BOARD_SIZE } from "./Config.js";
 import Config from "./Config.js";
 import array from "./MyArray.js";
 import Zobrist from "./Zobrist.js";
@@ -7,7 +6,7 @@ import Direction from "./Direction.js";
 import Coord from "./Coord.js";
 import MiBackup from "./MiBackup.js";
 import scoreLine from "./ScoreCalculator.js";
-import StdType from "./StandardType.js";
+import { EMPTY, SELF, BLOCKED } from "./StandardType.js";
 import Score from "./Score.js";
 
 export default class ChessBoard {
@@ -20,7 +19,7 @@ export default class ChessBoard {
          * 棋盘矩阵 Number[15][15]
          * @type Number[][]
          */
-        this.boardMatrix = array.create(BOARD_SIZE.BOARD_SIZE);
+        this.boardMatrix = array.create(Config.BOARD_SIZE, Config.BOARD_SIZE);
         /**
          * 棋子总数 
          * @type Number
@@ -30,27 +29,27 @@ export default class ChessBoard {
          * 人类的空位分值 Number[15][15][4]
          * @type Number[][][]
          */
-        this.humHeuristic = array.create(BOARD_SIZE, BOARD_SIZE, 4);
+        this.humHeuristic = array.create(Config.BOARD_SIZE, Config.BOARD_SIZE, 4);
         /**
          * 电脑的空位分值 Number[15][15][4]
          * @type Number[][][]
          */
-        this.comHeuristic = array.create(BOARD_SIZE, BOARD_SIZE, 4);
+        this.comHeuristic = array.create(Config.BOARD_SIZE, Config.BOARD_SIZE, 4);
         /**
          * 位置附近棋子的总数 Number[15][15] 
          * @type Number[][] 
          */
-        this.neighborNum = array.create(BOARD_SIZE, BOARD_SIZE);
+        this.neighborNum = array.create(Config.BOARD_SIZE, Config.BOARD_SIZE);
         /**
          * 位置近邻人类棋子数量 Number[15][15]
          * @type Number[][]
          */
-        this.humCloseNeighbor = array.create(BOARD_SIZE, BOARD_SIZE);
+        this.humCloseNeighbor = array.create(Config.BOARD_SIZE, Config.BOARD_SIZE);
         /**
          * 位置近邻电脑棋子数量 Number[15][15]
          * @type Number[][]
          */
-        this.comCloseNeighbor = array.create(BOARD_SIZE, BOARD_SIZE);
+        this.comCloseNeighbor = array.create(Config.BOARD_SIZE, Config.BOARD_SIZE);
         /**
          * Zobrist对象
          * @type Zobrist
@@ -113,7 +112,7 @@ export default class ChessBoard {
      * @return {Boolean} 棋盘是否已满
      */
     isFull() {
-        return this.chessNum === BOARD_SIZE * BOARD_SIZE;
+        return this.chessNum === Config.BOARD_SIZE * Config.BOARD_SIZE;
     }
 
     /**
@@ -139,8 +138,9 @@ export default class ChessBoard {
         //更新2格范围内邻居矩阵
         for (let i = x - 2; i <= x + 2; i++) {
             for (let j = y - 2; j <= y + 2; j++) {
-                if (!ChessBoard.outOfBound(i, j) && i != x && j != y) {
-                    if (oldType == EMPTY_CHESS) {
+                if (!ChessBoard.outOfBound(i, j)
+                    && !(i === x && j === y)) {
+                    if (oldType === EMPTY_CHESS) {
                         // 在(x,y)落子，周围邻居数量加1
                         this.neighborNum[i][j]++;
                     } else {
@@ -153,10 +153,10 @@ export default class ChessBoard {
         //更新己方邻居矩阵
         for (let i = x - 1; i <= x + 1; i++) {
             for (let j = y - 1; j <= y + 1; j++) {
-                if (!ChessBoard.outOfBound(i, j) && i != x && j != y) {
-                    // 在(x,y)落子
-                    if (oldType == EMPTY_CHESS) {
-                        if (this.boardMatrix[x][y] == HUM_CHESS) {
+                if (!ChessBoard.outOfBound(i, j)
+                    && !(i === x && j === y)) {// 在(x,y)落子
+                    if (oldType === EMPTY_CHESS) {
+                        if (this.boardMatrix[x][y] === HUM_CHESS) {
                             // (x,y)现在是人类棋子
                             this.humCloseNeighbor[i][j]++;
                         } else {
@@ -164,7 +164,7 @@ export default class ChessBoard {
                             this.comCloseNeighbor[i][j]++;
                         }
                     } else {// 在(x,y)撤销了一个棋子
-                        if (oldType == HUM_CHESS) {
+                        if (oldType === HUM_CHESS) {
                             // (x,y)原来是人类棋子
                             this.humCloseNeighbor[i][j]--;
                         } else {
@@ -194,11 +194,11 @@ export default class ChessBoard {
         backup.coords = [].concat(verticals).concat(horizontals).concat(diagonals).concat(antidiagonals);
         for (let i = 0; i < backup.coords.length; i++) {
             let coord = backup.coords[i];
-            let x = coord.x, y = coord.y;
-            if (!ChessBoard.outOfBound(x, y)) {
+            let ux = coord.x, uy = coord.y;
+            if (!ChessBoard.outOfBound(ux, uy)) {
                 for (let dir = 0; dir < 4; dir++) {
-                    backup.hum[i][dir] = this.humHeuristic[x][y][dir];
-                    backup.com[i][dir] = this.comHeuristic[x][y][dir];
+                    backup.hum[i][dir] = this.humHeuristic[ux][uy][dir];
+                    backup.com[i][dir] = this.comHeuristic[ux][uy][dir];
                 }
             }
         }
@@ -213,11 +213,11 @@ export default class ChessBoard {
     restoreHeuristic(backup) {
         for (let i = 0; i < backup.coords.length; i++) {
             let coord = backup.coords[i];
-            let x = coord.x, y = coord.y;
-            if (!ChessBoard.outOfBound(x, y)) {
+            let ux = coord.x, uy = coord.y;
+            if (!ChessBoard.outOfBound(ux, uy)) {
                 for (let dir = 0; dir < 4; dir++) {
-                    this.humHeuristic[x][y][dir] = backup.hum[i][dir];
-                    this.comHeuristic[x][y][dir] = backup.com[i][dir];
+                    this.humHeuristic[ux][uy][dir] = backup.hum[i][dir];
+                    this.comHeuristic[ux][uy][dir] = backup.com[i][dir];
                 }
             }
         }
@@ -230,14 +230,14 @@ export default class ChessBoard {
      * @param {Number} y 中心位置的列号
      */
     updateHeuristicAfterDo(x, y) {
-        let verticals = ChessBoard.lineCoords(x, y.Direction.VERTICAL);
+        let verticals = ChessBoard.lineCoords(x, y, Direction.VERTICAL);
         let horizontals = ChessBoard.lineCoords(x, y, Direction.HORIZONTAL);
         let diagonals = ChessBoard.lineCoords(x, y, Direction.DIAGONAL);
         let antidiagonals = ChessBoard.lineCoords(x, y, Direction.ANTIDIAGONAL);
         this.calcuLineHeuristic(verticals, Direction.VERTICAL);
-        this.calcuHeuristic(horizontals, Direction.HORIZONTAL);
-        this.calcuHeuristic(diagonals, Direction.diagonals);
-        this.calcuHeuristic(antidiagonals, Direction.ANTIDIAGONAL);
+        this.calcuLineHeuristic(horizontals, Direction.HORIZONTAL);
+        this.calcuLineHeuristic(diagonals, Direction.DIAGONAL);
+        this.calcuLineHeuristic(antidiagonals, Direction.ANTIDIAGONAL);
     }
 
     /**
@@ -248,9 +248,10 @@ export default class ChessBoard {
      */
     calcuLineHeuristic(line, dir) {
         for (let coord of line) {
-            let x = coord.x, y = coord.y;
-            if (!ChessBoard.outOfBound(x, y) && this.boardMatrix[x][y] == EMPTY_CHESS) {
-                this.calcuHeuristic(x, y, dir);
+            let ux = coord.x, uy = coord.y;
+            if (!ChessBoard.outOfBound(ux, uy)
+                && this.boardMatrix[ux][uy] === EMPTY_CHESS) {
+                this.calcuHeuristic(ux, uy, dir);
             }
         }
     }
@@ -340,10 +341,10 @@ export default class ChessBoard {
         let selfAliveThrees = [];
         let otherPositions = [];
 
-        for (let x = 0; x < BOARD_SIZE; x++) {
-            for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < Config.BOARD_SIZE; x++) {
+            for (let y = 0; y < Config.BOARD_SIZE; y++) {
                 // 这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
-                if (this.boardMatrix[x][y] === EMPTY_CHESS && ChessBoard.hasNeighbor(x, y)) {
+                if (this.boardMatrix[x][y] === EMPTY_CHESS && this.hasNeighbor(x, y)) {
                     let selfPosScore = this.heuristic(x, y, self);
                     let enermyPosScore = this.heuristic(x, y, enermy);
                     if (selfPosScore >= Score.FIVE || enermyPosScore >= Score.FIVE) {
@@ -398,7 +399,7 @@ export default class ChessBoard {
             } else {
                 result = result.concat(enermyAliveFours);
             }
-            //return result; //TODO
+            return result; //TODO
         }
 
         selfDoubleThrees.sort(ascSortFunc);
@@ -442,8 +443,8 @@ export default class ChessBoard {
         let enermyDoubleThrees = [];
         let selfAliveThrees = [];
 
-        for (let x = 0; x < BOARD_SIZE; x++) {
-            for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < Config.BOARD_SIZE; x++) {
+            for (let y = 0; y < Config.BOARD_SIZE; y++) {
                 // 这个位置必须是空的，而且我们规定必须有邻居才有资格进入候选
                 if (this.boardMatrix[x][y] === EMPTY_CHESS && this.hasNeighbor(x, y)) {
                     let selfPosScore = this.heuristic(x, y, self);
@@ -495,7 +496,7 @@ export default class ChessBoard {
             } else {
                 result = result.concat(enermyAliveFours);
             }
-            //return result; //TODO
+            return result; //TODO
         }
 
         selfDoubleThrees.sort(ascSortFunc);
@@ -524,23 +525,16 @@ export default class ChessBoard {
     evaluate(type) {
         let comScore = this.evaluateOneSide(COM_CHESS);
         let humScore = this.evaluateOneSide(HUM_CHESS);
-        if (type === COM_CHESS) {
-            if (comScore >= Score.FIVE) {
-                return Score.INF;
-            } else if (humScore >= Score.FIVE) {
+        if (Config.BOARD_SIZE != 15) {
+            if (type === COM_CHESS && humScore >= Score.FIVE) {
                 return -Score.INF;
-            } else {
-                return comScore - humScore;
-            }
-        } else {
-            if (humScore >= Score.FIVE) {
-                return -Score.INF;
-            } else if (comScore >= Score.FIVE) {
+            } else if (type === HUM_CHESS && comScore >= Score.FIVE) {
                 return Score.INF;
             } else {
                 return comScore - humScore;
             }
-        }
+        }//TODO
+        return comScore - humScore;
     }
 
     /**
@@ -552,8 +546,8 @@ export default class ChessBoard {
      */
     evaluateOneSide(type) {
         let result = 0;
-        for (let x = 0; x < BOARD_SIZE; x++) {
-            for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < Config.BOARD_SIZE; x++) {
+            for (let y = 0; y < Config.BOARD_SIZE; y++) {
                 if (this.boardMatrix[x][y] === EMPTY_CHESS) {
                     result += this.heuristic(x, y, type);
                 }
@@ -571,7 +565,7 @@ export default class ChessBoard {
      * @returns {Boolean} 落子方是否赢了
      */
     isWin(x, y) {
-        return this.heuristic(x, y, this.boardMatrix[x][y]);
+        return this.heuristic(x, y, this.boardMatrix[x][y]) >= Score.FIVE;
     }
 
     /**
@@ -583,43 +577,145 @@ export default class ChessBoard {
      * @returns {Number[]} 标准直线
      */
     standardizeLine(line, type) {
-        let stdLine = [StdType.BLOCKED];
+        let stdLine = [BLOCKED];
         for (let coord of line) {
             let x = coord.x, y = coord.y;
             if (ChessBoard.outOfBound(x, y)) {
-                stdLine.push(StdType.BLOCKED);
+                stdLine.push(BLOCKED);
             } else if (this.boardMatrix[x][y] === EMPTY_CHESS) {
-                stdLine.push(StdType.EMPTY);
+                stdLine.push(EMPTY);
             } else if (this.boardMatrix[x][y] === type) {
-                stdLine.push(StdType.SELF);
+                stdLine.push(SELF);
             } else {
-                stdLine.push(StdType.BLOCKED);
+                stdLine.push(BLOCKED);
             }
         }
-        stdLine = stdLine.push(StdType.BLOCKED);
+        stdLine.push(BLOCKED);
         return stdLine;
     }
 
     /**
-     * 字符串形式
-     * @returns {String} 字符串
+     * 棋盘字符串
+     * @returns {String} 棋盘字符串
      */
     toString() {
-        let str = "";
+        let str = "棋盘矩阵\n";
         str += "  ";
-        for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let i = 0; i < Config.BOARD_SIZE; i++) {
             str += i % 10 + " ";
         }
         str += "\n";
-        for (let x = 0; x < BOARD_SIZE; x++) {
+        for (let x = 0; x < Config.BOARD_SIZE; x++) {
             str += x % 10 + " ";
-            for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let y = 0; y < Config.BOARD_SIZE; y++) {
                 if (this.boardMatrix[x][y] == EMPTY_CHESS) {
-                    str += "＋";
+                    str += "_ ";
                 } else if (this.boardMatrix[x][y] == COM_CHESS) {
-                    str += "〇";
+                    str += "C ";
                 } else {
-                    str += "●";
+                    str += "H ";
+                }
+            }
+            str += "\n";
+        }
+        return str;
+    }
+
+    /**
+     * 邻居字符串
+     */
+    neighborToString() {
+        let str = "2步邻居矩阵\n";
+        str += "  ";
+        for (let i = 0; i < Config.BOARD_SIZE; i++) {
+            str += i % 10 + " ";
+        }
+        str += "\n";
+        for (let x = 0; x < Config.BOARD_SIZE; x++) {
+            str += x % 10 + " ";
+            for (let y = 0; y < Config.BOARD_SIZE; y++) {
+                if (this.boardMatrix[x][y] === HUM_CHESS) {
+                    str += "H ";
+                } else if (this.boardMatrix[x][y] === COM_CHESS) {
+                    str += "C ";
+                } else {
+                    if (this.neighborNum[x][y] === 0) {
+                        str += "_ ";
+                    } else {
+                        str += this.neighborNum[x][y] + " ";
+                    }
+                }
+            }
+            str += "\n";
+        }
+        return str;
+    }
+
+    closeToString(type) {
+        let closeNeighbor = (type === COM_CHESS)
+            ? this.comCloseNeighbor
+            : this.humCloseNeighbor;
+        let str = type === COM_CHESS ? "电脑" : "人类";
+        str += "近邻矩阵\n";
+        str += "  ";
+        for (let i = 0; i < Config.BOARD_SIZE; i++) {
+            str += i % 10 + " ";
+        }
+        str += "\n";
+        for (let x = 0; x < Config.BOARD_SIZE; x++) {
+            str += x % 10 + " ";
+            for (let y = 0; y < Config.BOARD_SIZE; y++) {
+                if (this.boardMatrix[x][y] === HUM_CHESS) {
+                    str += "H ";
+                } else if (this.boardMatrix[x][y] === COM_CHESS) {
+                    str += "C ";
+                } else {
+                    if (closeNeighbor[x][y] === 0) {
+                        str += "_ ";
+                    } else {
+                        str += closeNeighbor[x][y] + " ";
+                    }
+                }
+            }
+            str += "\n";
+        }
+        return str;
+    }
+
+    heuristicToString(type) {
+        let str = type === COM_CHESS ? "电脑" : "人类";
+        str += "空位分值矩阵\n";
+        str += "  ";
+        for (let i = 0; i < Config.BOARD_SIZE; i++) {
+            str += i % 10 + " ";
+        }
+        str += "\n";
+        for (let x = 0; x < Config.BOARD_SIZE; x++) {
+            str += x % 10 + " ";
+            for (let y = 0; y < Config.BOARD_SIZE; y++) {
+                if (this.boardMatrix[x][y] === HUM_CHESS) {
+                    str += "H ";
+                } else if (this.boardMatrix[x][y] === COM_CHESS) {
+                    str += "C ";
+                } else {
+                    let score = this.heuristic(x, y, type);
+                    if (score >= Score.FIVE) {
+                        str += "5 ";
+                    } else if (score >= Score.ALIVE_FOUR) {
+                        str += "4!";
+                    } else if (score >= Score.BLOCKED_FOUR) {
+                        str += "4 ";
+                    } else if (score >= Score.ALIVE_THREE) {
+                        str += "3!";
+                    } else if (score >= Score.BLOCKED_THREE) {
+                        str += "3 ";
+                    } else if (score >= Score.ALIVE_TWO) {
+                        str += "2!";
+                    } else if (score >= Score.BLOCKED_TWO) {
+                        str += "2 ";
+                    } else {
+                        str += "_ ";
+                    }
                 }
             }
             str += "\n";
@@ -641,7 +737,7 @@ export default class ChessBoard {
      * @returns {Number} 哈希值
      */
     getCode() {
-        return this.zobrist.code();
+        return this.zobrist.zobristCode;
     }
 
     /**
@@ -651,7 +747,7 @@ export default class ChessBoard {
      * @returns {Boolean} (x,y)是否越界
      */
     static outOfBound(x, y) {
-        return (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE);
+        return (x < 0 || x >= Config.BOARD_SIZE || y < 0 || y >= Config.BOARD_SIZE);
     }
 
     /**

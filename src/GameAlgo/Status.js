@@ -11,6 +11,7 @@ let Status = {
     nodeNum: 0,
     /** 叶子结点个数 */
     leafNum: 0,
+    winNum: 0,
     /** 完全命中 */
     completeMatch: 0,
     /** 部分命中 */

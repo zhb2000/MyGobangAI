@@ -1,5 +1,5 @@
 //各棋形的分数
-export default {
+let Score = {
     /** 连五 */
     FIVE: 1e7,
     /** 活四 */
@@ -17,3 +17,4 @@ export default {
     /** 无穷值表示胜利 */
     INF: 1e9
 }
+export default Score;

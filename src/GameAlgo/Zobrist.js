@@ -1,14 +1,8 @@
-import { BOARD_SIZE } from "./Config.js";
+import Config from "./Config.js";
 import { COM_CHESS, HUM_CHESS } from "./ChessType.js";
 
-/**
- * 生成[minNum,maxNum]的随机整数
- * @param {Number} minNum 下界
- * @param {Number} maxNum 上界
- * @returns {Number} 随机整数
- */
-function randomNum(minNum, maxNum) {
-    return parseInt(Math.random() * (maxNum - minNum + 1) + minNum, 10);
+function randomNum() {
+    return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 }
 
 /**
@@ -40,12 +34,12 @@ export default class Zobrist {
          */
         this.zobristCode = 0;
 
-        for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
-            this.empty.push(randomNum(0, Number.MAX_SAFE_INTEGER));
-            this.hum.push(randomNum(0, Number.MAX_SAFE_INTEGER));
-            this.com.push(randomNum(0, Number.MAX_SAFE_INTEGER));
+        for (let i = 0; i < Config.BOARD_SIZE * Config.BOARD_SIZE; i++) {
+            this.empty.push(randomNum());
+            this.hum.push(randomNum());
+            this.com.push(randomNum());
         }
-        for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+        for (let i = 0; i < Config.BOARD_SIZE * Config.BOARD_SIZE; i++) {
             this.zobristCode ^= this.empty[i];
         }
     }
@@ -58,7 +52,7 @@ export default class Zobrist {
      * @param {Number} newChess 新棋子类型
      */
     goUpdate(x, y, oldChess, newChess) {
-        let index = x * BOARD_SIZE + y;
+        let index = x * Config.BOARD_SIZE + y;
         let oldArray, newArray;
         if (oldChess === HUM_CHESS) {
             oldArray = this.hum;

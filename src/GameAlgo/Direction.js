@@ -1,4 +1,4 @@
-export default {
+let Direction = {
     /** 竖直方向 */
     VERTICAL: 0,
     /** 水平方向 */
@@ -8,3 +8,4 @@ export default {
     /** 反对角线方向 */
     ANTIDIAGONAL: 3
 }
+export default Direction;
