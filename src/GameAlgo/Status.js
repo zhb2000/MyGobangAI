@@ -1,6 +1,4 @@
 let Status = {
-    /** 是否开启算杀模式 */
-    //killerMode: false,
     /** 搜索开始的时间 */
     startTime: 0,
     /** 本轮搜索是否超时 */
@@ -11,6 +9,7 @@ let Status = {
     nodeNum: 0,
     /** 叶子结点个数 */
     leafNum: 0,
+    /**输赢局面个数 */
     winNum: 0,
     /** 完全命中 */
     completeMatch: 0,
@@ -19,6 +18,8 @@ let Status = {
     /** 叶子结点命中 */
     leafMatch: 0,
     /** ab剪枝次数 */
-    ABPruning: 0
+    ABPruning: 0,
+    /**回传f值 */
+    f: 0
 };
 export default Status;

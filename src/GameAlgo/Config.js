@@ -11,10 +11,10 @@ let Config = {
     /** 最长搜索时间 */
     MAX_TIME: 30 * 1000,
     /** 己方近邻系数 */
-    CLOSE_RADIUS: 0,
+    CLOSE_RADIUS: 0.07,
     /**开启置换表优化 */
     useTransTable: true,
     /**使用启发函数优化 */
-    useHuristic: true
+    useHeuristic: true
 };
 export default Config;

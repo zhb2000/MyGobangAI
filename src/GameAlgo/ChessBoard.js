@@ -58,6 +58,25 @@ export default class ChessBoard {
     }
 
     /**
+     * 棋盘清零 
+     */
+    reset() {
+        this.chessNum = 0;
+        for (let x = 0; x < Config.BOARD_SIZE; x++) {
+            for (let y = 0; y < Config.BOARD_SIZE; y++) {
+                this.boardMatrix[x][y] = EMPTY_CHESS;
+                this.humCloseNeighbor[x][y] = 0;
+                this.comCloseNeighbor[x][y] = 0;
+                this.neighborNum[x][y] = 0;
+                for (let dir = 0; dir < 4; dir++) {
+                    this.humHeuristic[x][y][dir] = 0;
+                    this.comHeuristic[x][y][dir] = 0;
+                }
+            }
+        }
+    }
+
+    /**
      * 落子并更新相应的数据
      * 
      * @param {Number} x 落子的行号
@@ -331,6 +350,20 @@ export default class ChessBoard {
             enermy = COM_CHESS;
         }
 
+        //不使用启发式规则
+        if (!Config.useHeuristic) {
+            let dullResult = [];
+            for (let x = 0; x < Config.BOARD_SIZE; x++) {
+                for (let y = 0; y < Config.BOARD_SIZE; y++) {
+                    if (this.boardMatrix[x][y] === EMPTY_CHESS
+                        && this.hasNeighbor(x, y)) {
+                        dullResult.push(new Coord(x, y));
+                    }
+                }
+            }
+            return dullResult;
+        }
+
         let fives = [];
         let selfAliveFours = [];
         let enermyAliveFours = [];
@@ -389,7 +422,6 @@ export default class ChessBoard {
         if (selfAliveFours.length > 0) {
             return selfAliveFours;
         }
-
         if (enermyAliveFours.length > 0) {
             selfBlockedFours.sort(ascSortFunc);
             enermyAliveFours.sort(ascSortFunc);
@@ -433,6 +465,20 @@ export default class ChessBoard {
         } else {
             self = HUM_CHESS;
             enermy = COM_CHESS;
+        }
+
+        //不使用启发式规则
+        if (!Config.useHeuristic) {
+            let dullResult = [];
+            for (let x = 0; x < Config.BOARD_SIZE; x++) {
+                for (let y = 0; y < Config.BOARD_SIZE; y++) {
+                    if (this.boardMatrix[x][y] === EMPTY_CHESS
+                        && this.hasNeighbor(x, y)) {
+                        dullResult.push(new Coord(x, y));
+                    }
+                }
+            }
+            return dullResult;
         }
 
         let fives = [];
@@ -525,16 +571,13 @@ export default class ChessBoard {
     evaluate(type) {
         let comScore = this.evaluateOneSide(COM_CHESS);
         let humScore = this.evaluateOneSide(HUM_CHESS);
-        if (Config.BOARD_SIZE != 15) {
-            if (type === COM_CHESS && humScore >= Score.FIVE) {
-                return -Score.INF;
-            } else if (type === HUM_CHESS && comScore >= Score.FIVE) {
-                return Score.INF;
-            } else {
-                return comScore - humScore;
-            }
-        }//TODO
-        return comScore - humScore;
+        if (type === COM_CHESS && humScore >= Score.FIVE) {
+            return -Score.INF;
+        } else if (type === HUM_CHESS && comScore >= Score.FIVE) {
+            return Score.INF;
+        } else {
+            return comScore - humScore;
+        }
     }
 
     /**

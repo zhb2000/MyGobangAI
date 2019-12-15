@@ -223,21 +223,26 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
 function getBestPut(board) {
     initStatus();
 
-    if (board.getNumber() <= 6) {
-        //1~3回合
-        Config.MAX_DEPTH = 4;
-        Config.MAX_EMPTY_NUM = 20;
-    } else if (board.getNumber() <= 10) {
-        //4~5回合
-        Config.MAX_DEPTH = 6;
-        Config.MAX_EMPTY_NUM = 15;
-    } else if (board.getNumber() <= 14) {
-        //6~7回合
-        Config.MAX_DEPTH = 8;
-        Config.MAX_EMPTY_NUM = 15;
+    if (!Config.useHeuristic) {
+        Config.MAX_DEPTH = 3;
+        Config.MAX_EMPTY_NUM = 15 * 15;
     } else {
-        Config.MAX_DEPTH = 9;
-        Config.MAX_EMPTY_NUM = 15;
+        if (board.getNumber() <= 6) {
+            //1~3回合
+            Config.MAX_DEPTH = 4;
+            Config.MAX_EMPTY_NUM = 20;
+        } else if (board.getNumber() <= 10) {
+            //4~5回合
+            Config.MAX_DEPTH = 6;
+            Config.MAX_EMPTY_NUM = 15;
+        } else if (board.getNumber() <= 14) {
+            //6~7回合
+            Config.MAX_DEPTH = 8;
+            Config.MAX_EMPTY_NUM = 13;
+        } else {
+            Config.MAX_DEPTH = 8;
+            Config.MAX_EMPTY_NUM = 15;
+        }
     }
 
     let f = -Score.INF - 1;
@@ -258,7 +263,11 @@ function getBestPut(board) {
             bestPut.x = x;
             bestPut.y = y;
         }
+        if (f >= Score.INF) {
+            break;
+        }
     }
+    Status.f = f;
     console.log(getStatusStr(f));
     return bestPut;
 }
@@ -277,6 +286,7 @@ function initStatus() {
     Status.partialMatch = 0;
     Status.leafMatch = 0;
     Status.ABPruning = 0;
+    Status.f = 0;
 }
 
 /**
@@ -284,7 +294,7 @@ function initStatus() {
  * @param {Number} f 本轮搜索的回传f值
  * @returns {String} 表示本轮搜索状态的字符串
  */
-function getStatusStr(f) {
+function getStatusStr() {
     let str = "";
     str += "最大搜索深度：" + Status.goMaxDepth + "\n";
     str += "考察结点个数：" + Status.nodeNum + " "
@@ -297,7 +307,7 @@ function getStatusStr(f) {
     str += "用时：" + Math.round((new Date().getTime() - Status.startTime) / 1000.0) + "秒" + " "
         + "超时：" + Status.isOutTime + "\n";
     str += "ab剪枝次数：" + Status.ABPruning + "\n";
-    str += "倒推f值：" + f + "\n";
+    str += "回传f值：" + Status.f + "\n";
     return str;
 }
 

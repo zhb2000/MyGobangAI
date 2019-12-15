@@ -41,9 +41,9 @@ export default class TableCell {
      * @param {Number} chessNum 棋盘棋子个数
      */
     validCell(hashCode, chessNum) {
-        if (this.isValid && this.hashCode === hashCode && this.chessNum != chessNum) {
-            console.log("same code, not same num");
-        }
+        // if (this.isValid && this.hashCode === hashCode && this.chessNum != chessNum) {
+        //     console.log("same code, not same num");
+        // }
         return (this.isValid
             && this.hashCode === hashCode
             && this.chessNum === chessNum);
