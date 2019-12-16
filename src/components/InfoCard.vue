@@ -1,12 +1,12 @@
 <template>
   <div class="card">
     <p>最大搜索深度：{{goMaxDepth}}</p>
-    <p>考察结点个数：{{nodeNum}}</p>
+    <p>考察结点总数：{{nodeNum}}；叶子结点个数：{{numOfLeaf}}</p>
     <p>用时：{{timeUsed}}秒；超时：{{isOutTime}}</p>
-    <p>ab剪枝次数：{{ABPruning}}</p>
-    <p>回传f值：{{f}}</p>
+    <p>a-b 剪枝次数：{{ABPruning}}</p>
+    <p>回传 f 值：{{f}}</p>
     <p>置换表命中总次数：{{sumMatch}}</p>
-    <p> 完全命中：{{completeMatch}}；部分命中：{{partialMatch}}；叶子结点命中：{{leafMatch}}</p>
+    <p>完全命中：{{completeMatch}}；部分命中：{{partialMatch}}；叶子结点命中：{{leafMatch}}</p>
   </div>
 </template>
 
@@ -18,6 +18,7 @@ export default {
     return {
       goMaxDepth: 0,
       nodeNum: 0,
+      numOfLeaf: 0,
       completeMatch: 0,
       partialMatch: 0,
       leafMatch: 0,
@@ -32,6 +33,7 @@ export default {
     update() {
       this.goMaxDepth = Status.goMaxDepth;
       this.nodeNum = Status.nodeNum;
+      this.numOfLeaf = Status.leafNum + Status.winNum;
       this.completeMatch = Status.completeMatch;
       this.partialMatch = Status.partialMatch;
       this.leafMatch = Status.leafMatch;

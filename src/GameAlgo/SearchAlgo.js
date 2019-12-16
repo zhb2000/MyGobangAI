@@ -227,18 +227,22 @@ function getBestPut(board) {
         Config.MAX_DEPTH = 3;
         Config.MAX_EMPTY_NUM = 15 * 15;
     } else {
-        if (board.getNumber() <= 6) {
-            //1~3回合
+        if (board.getNumber() < 4) {
+            //1~2回合
             Config.MAX_DEPTH = 4;
             Config.MAX_EMPTY_NUM = 20;
-        } else if (board.getNumber() <= 10) {
-            //4~5回合
+        } else if (board.getNumber() < 6) {
+            //3回合
+            Config.MAX_DEPTH = 5;
+            Config.MAX_EMPTY_NUM = 18;
+        } else if (board.getNumber() < 8) {
+            //4回合
             Config.MAX_DEPTH = 6;
+            Config.MAX_EMPTY_NUM = 16;
+        } else if (board.getNumber() < 10) {
+            //5回合
+            Config.MAX_DEPTH = 7;
             Config.MAX_EMPTY_NUM = 15;
-        } else if (board.getNumber() <= 14) {
-            //6~7回合
-            Config.MAX_DEPTH = 8;
-            Config.MAX_EMPTY_NUM = 13;
         } else {
             Config.MAX_DEPTH = 8;
             Config.MAX_EMPTY_NUM = 15;

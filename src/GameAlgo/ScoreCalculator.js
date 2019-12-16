@@ -1,6 +1,7 @@
 import array from "./MyArray.js";
 import { EMPTY, SELF } from "./StandardType.js";
 import Score from "./Score.js";
+import Config from "./Config.js";
 
 /**
  * 己方棋子个数前缀和
@@ -27,28 +28,48 @@ let blockedCnt = array.create(11);
 function scoreLine(line) {
     calcuArray(line);
 
-    let sum = 0;
-    let fiveScore = fiveNum(line) * Score.FIVE;
-    sum += fiveScore;
-    if (fiveScore > 0) {
+    if (Config.CALC_LINE_ALGO === 1) {
+        let sum = 0;
+        let fiveScore = fiveNum(line) * Score.FIVE;
+        sum += fiveScore;
+        if (fiveScore > 0) {
+            return sum;
+        }
+        let aliveFourScore = aliveFourNum(line) * Score.ALIVE_FOUR;
+        sum += aliveFourScore;
+        if (aliveFourScore === 0) {
+            sum += blockedFourNum(line) * Score.BLOCKED_FOUR;
+        }
+        let aliveThreeScore = aliveThreeNum(line) * Score.ALIVE_THREE;
+        sum += aliveThreeScore;
+        if (aliveThreeScore === 0) {
+            sum += blockedThreeNum(line) * Score.BLOCKED_THREE;
+        }
+        let aliveTwoScore = aliveTwoNum(line) * Score.ALIVE_TWO;
+        sum += aliveTwoScore;
+        if (aliveTwoScore === 0) {
+            sum += blockedTwoNum(line) * Score.BLOCKED_TWO;
+        }
         return sum;
+    } else {
+        if (hasFive(line)) {
+            return Score.FIVE;
+        } else if (hasAliveFour(line)) {
+            return Score.ALIVE_FOUR;
+        } else if (hasBlockedFour(line)) {
+            return Score.BLOCKED_FOUR;
+        } else if (hasAliveThree(line)) {
+            return Score.ALIVE_THREE;
+        } else if (hasBlockedThree(line)) {
+            return Score.BLOCKED_THREE;
+        } else if (hasAliveTwo(line)) {
+            return Score.ALIVE_TWO;
+        } else if (hasBlockedTwo(line)) {
+            return Score.BLOCKED_TWO;
+        } else {
+            return 0;
+        }
     }
-    let aliveFourScore = aliveFourNum(line) * Score.ALIVE_FOUR;
-    sum += aliveFourScore;
-    if (aliveFourScore === 0) {
-        sum += blockedFourNum(line) * Score.BLOCKED_FOUR;
-    }
-    let aliveThreeScore = aliveThreeNum(line) * Score.ALIVE_THREE;
-    sum += aliveThreeScore;
-    if (aliveThreeScore === 0) {
-        sum += blockedThreeNum(line) * Score.BLOCKED_THREE;
-    }
-    let aliveTwoScore = aliveTwoNum(line) * Score.ALIVE_TWO;
-    sum += aliveTwoScore;
-    if (aliveTwoScore === 0) {
-        sum += blockedTwoNum(line) * Score.BLOCKED_TWO;
-    }
-    return sum;
 }
 
 /**
@@ -124,6 +145,17 @@ function fiveNum(line) {
     return num;
 }
 
+function hasFive(line) {
+    let left, right;
+    for (left = 0; left + 5 - 1 < line.length; left++) {
+        right = left + 5 - 1;
+        if (cnt(left, right, SELF) === 5) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * 计算活四的个数
  * @param {Number[]} line 标准化直线
@@ -143,6 +175,19 @@ function aliveFourNum(line) {
     return num;
 }
 
+function hasAliveFour(line) {
+    // 6个一组，两头0，4个1，2个0
+    let left, right;
+    for (left = 0; left + 6 - 1 < line.length; left++) {
+        right = left + 6 - 1;
+        if (line[left] === 0 && line[right] === 0 && cnt(left, right, SELF) === 4
+            && cnt(left, right, EMPTY) === 2) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * 计算死四的个数
  * @param {Number[]} line 标准化直线
@@ -159,6 +204,18 @@ function blockedFourNum(line) {
         }
     }
     return num;
+}
+
+function hasBlockedFour(line) {
+    // 5个一组，4个1，1个0
+    let left, right;
+    for (left = 0; left + 5 - 1 < line.length; left++) {
+        right = left + 5 - 1;
+        if (cnt(left, right, SELF) === 4 && cnt(left, right, EMPTY) === 1) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -180,6 +237,19 @@ function aliveThreeNum(line) {
     return num;
 }
 
+function hasAliveThree(line) {
+    // 6个一组，两头0，3个1，3个0
+    let left, right;
+    for (left = 0; left + 6 - 1 < line.length; left++) {
+        right = left + 6 - 1;
+        if (line[left] === 0 && line[right] === 0 && cnt(left, right, SELF) === 3
+            && cnt(left, right, EMPTY) === 3) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * 计算死三的个数
  * @param {Number[]} line 标准化直线
@@ -196,6 +266,18 @@ function blockedThreeNum(line) {
         }
     }
     return num;
+}
+
+function hasBlockedThree(line) {
+    // 5个一组，3个1，2个0
+    let left, right;
+    for (left = 0; left + 5 - 1 < line.length; left++) {
+        right = left + 5 - 1;
+        if (cnt(left, right, SELF) === 3 && cnt(left, right, EMPTY) === 2) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -217,6 +299,19 @@ function aliveTwoNum(line) {
     return num;
 }
 
+function hasAliveTwo(line) {
+    // 6个一组，两头0，2个1，4个0
+    let left, right;
+    for (left = 0; left + 6 - 1 < line.length; left++) {
+        right = left + 6 - 1;
+        if (line[left] === 0 && line[right] === 0 && cnt(left, right, SELF) === 2
+            && cnt(left, right, EMPTY) === 4) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * 计算死二的个数
  * @param {Number[]} line 标准化直线
@@ -233,6 +328,18 @@ function blockedTwoNum(line) {
         }
     }
     return num;
+}
+
+function hasBlockedTwo(line) {
+    // 5个一组，2个1，3个0
+    let left, right;
+    for (left = 0; left + 5 - 1 < line.length; left++) {
+        right = left + 5 - 1;
+        if (cnt(left, right, SELF) === 2 && cnt(left, right, EMPTY) === 3) {
+            return true;
+        }
+    }
+    return false;
 }
 
 export default scoreLine;
