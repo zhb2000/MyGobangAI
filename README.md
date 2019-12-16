@@ -9,7 +9,7 @@
 ![screenshot](./docs/截图.png)
 
 ## 体验本项目
-GitHub Page：**[传送门](https://zhb2000.github.io/MyGobangAI/)**
+GitHub Page：**[传送门](https://zhb2000.github.io/MyGobangAI/index.html)**
 
 ### 温馨提示
 不建议您使用2017年以前的旧版浏览器访问（CSS Grid 真好用
