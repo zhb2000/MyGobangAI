@@ -1,8 +1,8 @@
 import { COM_CHESS, HUM_CHESS } from "./ChessType.js";
 import Config from "./Config.js";
 //import TableCell from "./TableCell.js";
-import { INVALID_F, EXACT_F, LOWER_F, UPPER_F } from "./TableCell.js";
-import getCell from "./TransTable.js";
+import TableCell, { INVALID_F, EXACT_F, LOWER_F, UPPER_F } from "./TableCell.js";
+import { getCell, setCell } from "./TransTable.js";
 import Status from "./Status.js";
 //import ChessBoard from "./ChessBoard.js";
 import Score from "./Score.js";
@@ -36,6 +36,10 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
 
     /**置换表表项*/
     let cell = getCell(board.getCode());
+    if (cell === null) {
+        cell = new TableCell();
+        setCell(board.getCode(), cell);
+    }
     /**当前结点子树深度 */
     let treeDepth = Config.MAX_DEPTH - depth;
 
@@ -246,10 +250,10 @@ function getBestPut(board) {
         } else if (board.getNumber() < 12) {
             //6回合
             Config.MAX_DEPTH = 7;
-            Config.MAX_EMPTY_NUM = 14;
+            Config.MAX_EMPTY_NUM = 15;
         } else {
             Config.MAX_DEPTH = 8;
-            Config.MAX_EMPTY_NUM = 13;
+            Config.MAX_EMPTY_NUM = 14;
         }
     }
 

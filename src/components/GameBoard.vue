@@ -220,6 +220,7 @@ export default {
   align-items: center;
   justify-items: center;
   cursor: pointer;
+  overflow: hidden;
 }
 .chess_number {
   font-size: 12px;

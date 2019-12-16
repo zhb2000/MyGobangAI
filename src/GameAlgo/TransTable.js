@@ -1,10 +1,8 @@
-import TableCell from "./TableCell";
+//import TableCell from "./TableCell";
 
-const TABLE_SIZE = 1 << 19;
+const TABLE_SIZE = 1 << 21;
 let cells = new Array(TABLE_SIZE);
-for (let i = 0; i < TABLE_SIZE; i++) {
-    cells[i] = new TableCell();
-}
+cells.fill(null, 0, TABLE_SIZE);
 //console.log("transtable size:" + TABLE_SIZE);
 
 /**
@@ -17,4 +15,14 @@ function getCell(hashCode) {
     return cells[index];
 }
 
-export default getCell;
+/**
+ * 新建对应的置换表表项
+ * @param {Number} hashCode 棋盘哈希值
+ * @param {TableCell} cell 新建的置换表表项
+ */
+function setCell(hashCode, cell) {
+    let index = ((hashCode % TABLE_SIZE) + TABLE_SIZE) % TABLE_SIZE;
+    cells[index] = cell;
+}
+
+export { getCell, setCell };

@@ -26,9 +26,9 @@ function humanPlay(x, y) {
         winStatus = DRAW;
     }
     //console.log(board.toString());
-    //console.log(board.heuristicToString(COM_CHESS));
-    //console.log(board.heuristicToString(HUM_CHESS));
-    //console.log(board.neighborToString());
+    console.log(board.heuristicToString(COM_CHESS));
+    console.log(board.heuristicToString(HUM_CHESS));
+    console.log(board.neighborToString());
     //console.log(board.closeToString(HUM_CHESS));
 }
 function getComputerPlay() {
@@ -44,9 +44,9 @@ function getComputerPlay() {
         winStatus = DRAW;
     }
     //console.log(board.toString());
-    //console.log(board.heuristicToString(COM_CHESS));
-    //console.log(board.heuristicToString(HUM_CHESS));
-    //console.log(board.neighborToString());
+    console.log(board.heuristicToString(COM_CHESS));
+    console.log(board.heuristicToString(HUM_CHESS));
+    console.log(board.neighborToString());
     //console.log(board.closeToString(COM_CHESS));
     return { x: coord.x, y: coord.y };
 }
