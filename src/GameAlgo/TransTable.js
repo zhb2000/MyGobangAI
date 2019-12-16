@@ -1,6 +1,6 @@
 import TableCell from "./TableCell";
 
-const TABLE_SIZE = 1 << 22;// 
+const TABLE_SIZE = 1 << 19;
 let cells = new Array(TABLE_SIZE);
 for (let i = 0; i < TABLE_SIZE; i++) {
     cells[i] = new TableCell();
