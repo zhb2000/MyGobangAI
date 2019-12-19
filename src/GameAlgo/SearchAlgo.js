@@ -15,7 +15,8 @@ const MIN_FLOOR = 1;
  * 极大极小搜索的递归函数，承诺在返回前撤销一切操作
  * 
  * @param {ChessBoard} board 棋盘
- * @param {Number} fatherF 父结点当前的f值
+ * @param {Number} alpha
+ * @param {Number} beta 
  * @param {Number} floorType 当前结点层的类型
  * @param {Number} depth 当前结点的深度
  * @param {Number} hasX 已放置的棋子的行号
@@ -24,9 +25,10 @@ const MIN_FLOOR = 1;
  * 
  * @returns {Number} 该结点的倒推f值
  */
-function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
+function dfs(board, alpha, beta, floorType, depth, hasX, hasY, hasType) {
     Status.nodeNum++;
-    Status.goMaxDepth = Math.max(depth, Status.goMaxDepth);
+    Status.goMaxDepth = Math.max(Status.goMaxDepth, depth);
+    Status.posDepth = Math.max(Status.posDepth, depth);
 
     // 判断是否一方已赢
     if (board.isWin(hasX, hasY)) {
@@ -69,7 +71,7 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
 
 
     if (floorType === MAX_FLOOR) {
-        let f = -Score.INF;
+        let f = -Score.INF;//当前结点回传值
         if (Config.useTransTable
             && cell.validCell(board.getCode(), board.getNumber())
             && cell.fType != INVALID_F
@@ -94,15 +96,13 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
             let backup = board.backupHeuristic(x, y);//备份
 
             board.put(x, y, COM_CHESS);//落子
-            let childF = dfs(board, f, MIN_FLOOR, depth + 1, x, y, COM_CHESS);
+            let childF = dfs(board, alpha, beta, MIN_FLOOR, depth + 1, x, y, COM_CHESS);
             board.undo(x, y, backup);//撤销
 
-            // 更新f值，即alpha往大走
-            if (childF > f) {
-                f = childF;
-            }
+            f = Math.max(f, childF);
+            alpha = Math.max(alpha, f);
             // beta剪枝
-            if (f > fatherF) {
+            if (beta <= alpha) {
                 Status.ABPruning++;
                 hasPurning = true;
                 break;
@@ -143,7 +143,7 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
 
         return f;
     } else {
-        let f = Score.INF;
+        let f = Score.INF;//当前结点回传值
         if (Config.useTransTable
             && cell.validCell(board.getCode(), board.getNumber())
             && cell.fType != INVALID_F
@@ -168,15 +168,13 @@ function dfs(board, fatherF, floorType, depth, hasX, hasY, hasType) {
             let backup = board.backupHeuristic(x, y);//备份
 
             board.put(x, y, HUM_CHESS);//落子
-            let childF = dfs(board, f, MAX_FLOOR, depth + 1, x, y, HUM_CHESS);
+            let childF = dfs(board, alpha, beta, MAX_FLOOR, depth + 1, x, y, HUM_CHESS);
             board.undo(x, y, backup);//撤销
 
-            // 更新f值，即beta往小走
-            if (childF < f) {
-                f = childF;
-            }
+            f = Math.min(f, childF);
+            beta = Math.min(beta, f);
             // alpha剪枝
-            if (f < fatherF) {
+            if (beta <= alpha) {
                 Status.ABPruning++;
                 hasPurning = true;
                 break;
@@ -233,31 +231,57 @@ function getBestPut(board) {
     } else {
         if (board.getNumber() < 4) {
             //1~2回合
-            Config.MAX_DEPTH = 3;
+            Config.MAX_DEPTH = 4;
             Config.MAX_EMPTY_NUM = 20;
         } else if (board.getNumber() < 6) {
             //3回合
-            Config.MAX_DEPTH = 4;
-            Config.MAX_EMPTY_NUM = 18;
-        } else if (board.getNumber() < 8) {
-            //4回合
             Config.MAX_DEPTH = 5;
             Config.MAX_EMPTY_NUM = 16;
+        } else if (board.getNumber() < 8) {
+            //4回合
+            Config.MAX_DEPTH = 6;
+            Config.MAX_EMPTY_NUM = 15;
         } else if (board.getNumber() < 10) {
             //5回合
-            Config.MAX_DEPTH = 6;
+            Config.MAX_DEPTH = 7;
             Config.MAX_EMPTY_NUM = 15;
         } else if (board.getNumber() < 12) {
             //6回合
-            Config.MAX_DEPTH = 7;
+            Config.MAX_DEPTH = 8;
             Config.MAX_EMPTY_NUM = 15;
         } else {
-            Config.MAX_DEPTH = 8;
-            Config.MAX_EMPTY_NUM = 14;
+            Config.MAX_DEPTH = 9;
+            Config.MAX_EMPTY_NUM = 15;
         }
+        // if (board.getNumber() < 4) {
+        //     //1~2回合
+        //     Config.MAX_DEPTH = 3;
+        //     Config.MAX_EMPTY_NUM = 20;
+        // } else if (board.getNumber() < 6) {
+        //     //3回合
+        //     Config.MAX_DEPTH = 4;
+        //     Config.MAX_EMPTY_NUM = 18;
+        // } else if (board.getNumber() < 8) {
+        //     //4回合
+        //     Config.MAX_DEPTH = 5;
+        //     Config.MAX_EMPTY_NUM = 16;
+        // } else if (board.getNumber() < 10) {
+        //     //5回合
+        //     Config.MAX_DEPTH = 6;
+        //     Config.MAX_EMPTY_NUM = 15;
+        // } else if (board.getNumber() < 12) {
+        //     //6回合
+        //     Config.MAX_DEPTH = 7;
+        //     Config.MAX_EMPTY_NUM = 15;
+        // } else {
+        //     Config.MAX_DEPTH = 8;
+        //     Config.MAX_EMPTY_NUM = 15;
+        // }
     }
 
     let f = -Score.INF - 1;
+    let alpha = -Score.INF, beta = Score.INF;
+    let longest = -1;
     let bestPut = new Coord(7, 7);//若generator生成的候选数组为空则默认放中间
     let emptyPosList = board.generator(COM_CHESS);
     for (let i = 0, cnt = 0;
@@ -265,17 +289,26 @@ function getBestPut(board) {
         i++ , cnt++) {
         let x = emptyPosList[i].x, y = emptyPosList[i].y;
         let backup = board.backupHeuristic(x, y);//备份
+        Status.posDepth = 0;
 
         board.put(x, y, COM_CHESS);//落子
-        let childF = dfs(board, f, MIN_FLOOR, 1, x, y, COM_CHESS);
+        let childF = dfs(board, alpha, beta, MIN_FLOOR, 1, x, y, COM_CHESS);
         board.undo(x, y, backup);//撤销
 
-        if (childF > f) {
+        if (childF <= -Score.INF && f <= -Score.INF) {//f和childF都代表失败
+            if (Status.posDepth > longest) {//更慢失败才能选择
+                f = childF;
+                bestPut.x = x;
+                bestPut.y = y;
+                longest = Status.posDepth;
+            }
+        } else if (childF > f) {
             f = childF;
             bestPut.x = x;
             bestPut.y = y;
         }
-        if (f >= Score.INF) {
+        alpha = Math.max(alpha, f);
+        if (beta <= alpha) {
             break;
         }
     }
